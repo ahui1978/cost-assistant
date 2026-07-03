@@ -1,0 +1,1111 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>造价指标 - 造价智能助手</title>
+    <link rel="stylesheet" href="assets/css/common.css">
+    <script src="https://unpkg.com/lucide@1.8.0/dist/umd/lucide.min.js"></script>
+    <style>
+        /* 造价指标页面专属样式 */
+        .dashboard-page {
+            flex: 1;
+            overflow-y: auto;
+            background-color: var(--color-bg-tertiary);
+        }
+
+        /* 顶部栏 */
+        .dashboard-header {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            background-color: var(--color-bg-tertiary);
+            border-bottom: 1px solid var(--color-border-light);
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+            flex-shrink: 0;
+        }
+
+        .dashboard-title-section {
+            min-width: 0;
+        }
+
+        .dashboard-title {
+            font-size: var(--font-size-xl);
+            font-weight: var(--font-weight-bold);
+            color: var(--color-text-primary);
+        }
+
+        .dashboard-subtitle {
+            font-size: var(--font-size-sm);
+            color: var(--color-text-tertiary);
+            margin-top: 2px;
+        }
+
+        .dashboard-filters {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-shrink: 0;
+            flex-wrap: wrap;
+        }
+
+        .filter-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: var(--radius-lg);
+            background-color: var(--color-surface);
+            border: 1px solid var(--color-border);
+        }
+
+        .filter-item [data-icon] {
+            width: 16px;
+            height: 16px;
+            color: var(--color-text-tertiary);
+            flex-shrink: 0;
+        }
+
+        .filter-select {
+            background: transparent;
+            border: none;
+            outline: none;
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-medium);
+            color: var(--color-text-primary);
+            cursor: pointer;
+            appearance: none;
+            padding-right: 8px;
+        }
+
+        .refresh-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 12px;
+            border-radius: var(--radius-lg);
+            background-color: var(--color-surface);
+            border: 1px solid var(--color-border);
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-medium);
+            color: var(--color-text-secondary);
+            transition: all var(--transition-fast);
+        }
+
+        .refresh-btn:hover {
+            border-color: var(--color-primary);
+            color: var(--color-primary);
+        }
+
+        .refresh-btn [data-icon] {
+            width: 14px;
+            height: 14px;
+        }
+
+        .refresh-btn.spinning [data-icon] {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* 内容区 */
+        .dashboard-content {
+            padding: 20px 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* KPI 卡片网格 */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+        }
+
+        /* 图表区域 */
+        .charts-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 16px;
+        }
+
+        .chart-card {
+            background-color: var(--color-surface);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            box-shadow: var(--shadow-md);
+        }
+
+        .chart-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .chart-title {
+            font-size: var(--font-size-md);
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-text-primary);
+        }
+
+        .chart-subtitle {
+            font-size: var(--font-size-xs);
+            color: var(--color-text-tertiary);
+            margin-top: 2px;
+        }
+
+        .chart-legend {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: var(--font-size-xs);
+            color: var(--color-text-secondary);
+        }
+
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+
+        .legend-dot.primary { background-color: var(--color-primary); }
+        .legend-dot.secondary { background-color: var(--color-border); opacity: 0.6; }
+
+        /* 柱状图 */
+        .bar-chart {
+            display: flex;
+            align-items: flex-end;
+            gap: 12px;
+            height: 220px;
+        }
+
+        .bar-group {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            min-width: 0;
+        }
+
+        .bar-value {
+            font-size: 11px;
+            font-weight: var(--font-weight-medium);
+            color: var(--color-text-tertiary);
+            white-space: nowrap;
+        }
+
+        .bar-pair {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            gap: 3px;
+        }
+
+        .bar {
+            width: 40%;
+            border-radius: 4px 4px 0 0;
+            transition: height 0.5s ease;
+            min-height: 2px;
+        }
+
+        .bar.primary { background-color: var(--color-primary); }
+        .bar.secondary { background-color: var(--color-border); opacity: 0.6; }
+
+        .bar-label {
+            font-size: 11px;
+            color: var(--color-text-secondary);
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 100%;
+        }
+
+        /* 饼图 */
+        .pie-chart-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .pie-chart {
+            position: relative;
+            width: 176px;
+            height: 176px;
+        }
+
+        .pie-chart-inner {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: conic-gradient(
+                var(--color-primary) 0deg 198.72deg,
+                var(--state-info) 198.72deg 301.68deg,
+                var(--state-warning) 301.68deg 331.2deg,
+                var(--color-text-tertiary) 331.2deg 360deg
+            );
+            transition: background 0.5s ease;
+        }
+
+        .pie-chart-center {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .pie-chart-center-inner {
+            width: 112px;
+            height: 112px;
+            border-radius: 50%;
+            background-color: var(--color-surface);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .pie-center-label {
+            font-size: 11px;
+            color: var(--color-text-tertiary);
+        }
+
+        .pie-center-value {
+            font-size: var(--font-size-lg);
+            font-weight: var(--font-weight-bold);
+            color: var(--color-text-primary);
+        }
+
+        .pie-center-unit {
+            font-size: 11px;
+            color: var(--color-text-tertiary);
+        }
+
+        /* 饼图图例 */
+        .pie-legend {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .pie-legend-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .pie-legend-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .pie-legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+
+        .pie-legend-name {
+            font-size: var(--font-size-sm);
+            color: var(--color-text-secondary);
+        }
+
+        .pie-legend-value {
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-text-primary);
+        }
+
+        /* 数据表格 */
+        .data-table-card {
+            background-color: var(--color-surface);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            overflow: hidden;
+        }
+
+        .data-table-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--color-border-light);
+        }
+
+        .data-table-title {
+            font-size: var(--font-size-md);
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-text-primary);
+        }
+
+        .data-table-subtitle {
+            font-size: var(--font-size-xs);
+            color: var(--color-text-tertiary);
+            margin-top: 2px;
+        }
+
+        .export-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: var(--radius-lg);
+            background-color: var(--color-primary-light);
+            color: var(--color-primary);
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-medium);
+            transition: all var(--transition-fast);
+        }
+
+        .export-btn:hover {
+            background-color: var(--color-primary);
+            color: var(--color-text-inverse);
+        }
+
+        .export-btn [data-icon] {
+            width: 14px;
+            height: 14px;
+        }
+
+        .data-table-wrapper {
+            overflow-x: auto;
+        }
+
+        .data-table {
+            width: 100%;
+            font-size: var(--font-size-sm);
+        }
+
+        .data-table thead tr {
+            background-color: var(--color-bg-secondary);
+        }
+
+        .data-table th {
+            padding: 12px 20px;
+            text-align: left;
+            font-weight: var(--font-weight-medium);
+            color: var(--color-text-secondary);
+            white-space: nowrap;
+            font-size: var(--font-size-xs);
+        }
+
+        .data-table th.text-right { text-align: right; }
+
+        .data-table td {
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--color-border-light);
+            color: var(--color-text-primary);
+            font-size: var(--font-size-xs);
+        }
+
+        .data-table td.text-right { text-align: right; }
+
+        .data-table .building-type {
+            font-weight: var(--font-weight-medium);
+            white-space: nowrap;
+        }
+
+        .data-table .price-range {
+            font-weight: var(--font-weight-semibold);
+            white-space: nowrap;
+        }
+
+        .data-table .remark {
+            color: var(--color-text-tertiary);
+            max-width: 180px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .data-table tfoot td {
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-primary);
+            border-bottom: none;
+        }
+
+        /* 分页 */
+        .table-pagination {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 20px;
+            border-top: 1px solid var(--color-border-light);
+        }
+
+        .table-pagination-info {
+            font-size: var(--font-size-xs);
+            color: var(--color-text-tertiary);
+        }
+
+        .table-pagination-buttons {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .table-page-btn {
+            padding: 4px 10px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--color-border);
+            background-color: var(--color-surface);
+            color: var(--color-text-tertiary);
+            font-size: var(--font-size-xs);
+            transition: all var(--transition-fast);
+        }
+
+        .table-page-btn:hover:not(:disabled) {
+            border-color: var(--color-primary);
+            color: var(--color-primary);
+        }
+
+        .table-page-btn.active {
+            background-color: var(--color-primary);
+            border-color: var(--color-primary);
+            color: var(--color-text-inverse);
+            font-weight: var(--font-weight-medium);
+        }
+
+        .table-page-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* 空状态提示卡 */
+        .empty-card {
+            background-color: var(--color-surface);
+            border-radius: var(--radius-lg);
+            border: 1px dashed var(--color-border);
+            padding: 32px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            box-shadow: var(--shadow-md);
+        }
+
+        .empty-card-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background-color: var(--color-bg-tertiary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 16px;
+        }
+
+        .empty-card-icon [data-icon] {
+            width: 24px;
+            height: 24px;
+            color: var(--color-text-tertiary);
+        }
+
+        .empty-card-title {
+            font-size: var(--font-size-base);
+            font-weight: var(--font-weight-medium);
+            color: var(--color-text-secondary);
+            margin-bottom: 4px;
+        }
+
+        .empty-card-desc {
+            font-size: var(--font-size-xs);
+            color: var(--color-text-tertiary);
+            max-width: 480px;
+            line-height: 1.5;
+            margin-bottom: 16px;
+        }
+
+        /* 响应式 */
+        @media (max-width: 1200px) {
+            .kpi-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .charts-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-header {
+                padding: 12px 16px;
+            }
+
+            .dashboard-title {
+                font-size: var(--font-size-lg);
+            }
+
+            .dashboard-content {
+                padding: 16px;
+                gap: 16px;
+            }
+
+            .kpi-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 12px;
+            }
+
+            .kpi-card {
+                padding: 16px;
+            }
+
+            .kpi-number {
+                font-size: var(--font-size-xl);
+            }
+
+            .chart-card {
+                padding: 16px;
+            }
+
+            .bar-chart {
+                height: 180px;
+                gap: 8px;
+            }
+
+            .bar-label {
+                font-size: 10px;
+            }
+
+            .dashboard-filters {
+                width: 100%;
+            }
+
+            .filter-item {
+                flex: 1;
+                min-width: 0;
+            }
+
+            .filter-select {
+                width: 100%;
+                min-width: 0;
+            }
+
+            .data-table th,
+            .data-table td {
+                padding: 10px 16px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .kpi-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden">
+    <!-- 侧边栏遮罩（移动端） -->
+    <div class="sidebar-overlay"></div>
+
+    <!-- 左侧导航栏 -->
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <div class="sidebar-logo-icon">
+                <i data-lucide="bot"></i>
+            </div>
+            <span>造价智能助手</span>
+        </div>
+
+        <div class="sidebar-divider"></div>
+
+        <nav class="sidebar-nav">
+            <a href="chat.html" class="nav-item" data-dom-id="nav-chat">
+                <i data-lucide="message-square"></i>
+                <span class="nav-text">智能对话</span>
+            </a>
+            <a href="boq.html" class="nav-item" data-dom-id="nav-boq">
+                <i data-lucide="file-spreadsheet"></i>
+                <span class="nav-text">工程量清单</span>
+            </a>
+            <a href="audit.html" class="nav-item" data-dom-id="nav-audit">
+                <i data-lucide="shield-check"></i>
+                <span class="nav-text">审核分析</span>
+            </a>
+            <a href="dashboard.html" class="nav-item" data-dom-id="nav-dashboard">
+                <i data-lucide="bar-chart-3"></i>
+                <span class="nav-text">造价指标</span>
+            </a>
+            <a href="pipeline.html" class="nav-item" data-dom-id="nav-pipeline">
+                <i data-lucide="git-branch"></i>
+                <span class="nav-text">管线迁改指标</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-user">
+            <div class="user-profile">
+                <div class="user-avatar">张</div>
+                <div class="user-info">
+                    <div class="user-name">张工</div>
+                    <div class="user-role">专业版</div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- 主内容区 -->
+    <main class="main-content flex flex-col h-screen">
+        <!-- 顶部栏 -->
+        <header class="top-header with-bg" style="border-bottom: none; background: transparent;">
+            <div class="flex items-center gap-3 min-w-0">
+                <button class="sidebar-toggle" id="sidebar-toggle">
+                    <i data-lucide="menu"></i>
+                </button>
+                <div>
+                    <h1 class="page-title" style="font-size: var(--font-size-xl);">造价指标</h1>
+                    <p class="text-xs" style="color: var(--color-text-tertiary); margin-top: 2px;">建筑工程造价指标参考与对比分析</p>
+                </div>
+            </div>
+            <div class="header-actions">
+                <div class="filter-item">
+                    <i data-lucide="map-pin"></i>
+                    <select class="filter-select" id="region-select">
+                        <option value="beijing">北京市</option>
+                        <option value="shanghai">上海市</option>
+                        <option value="guangdong" selected>广东省</option>
+                        <option value="zhejiang">浙江省</option>
+                        <option value="jiangsu">江苏省</option>
+                        <option value="sichuan">四川省</option>
+                    </select>
+                </div>
+                <div class="filter-item">
+                    <i data-lucide="calendar"></i>
+                    <select class="filter-select" id="quarter-select">
+                        <option value="2026q1">2026年Q1</option>
+                        <option value="2025q4">2025年Q4</option>
+                        <option value="2025q3" selected>2025年Q3</option>
+                        <option value="2025q2">2025年Q2</option>
+                        <option value="2025q1">2025年Q1</option>
+                    </select>
+                </div>
+                <button class="refresh-btn" id="refresh-btn">
+                    <i data-lucide="refresh-cw"></i>
+                    <span>刷新</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- 内容区域 -->
+        <div class="dashboard-page">
+            <div class="dashboard-content">
+
+                <!-- KPI 卡片行 -->
+                <div class="kpi-grid">
+                    <!-- 单方造价 -->
+                    <div class="kpi-card">
+                        <div class="kpi-header">
+                            <span class="kpi-label">单方造价</span>
+                            <div class="kpi-icon primary">
+                                <i data-lucide="building-2"></i>
+                            </div>
+                        </div>
+                        <div class="kpi-value">
+                            <span class="kpi-number" id="kpi-unit-price">2,856</span>
+                            <span class="kpi-unit">元/m²</span>
+                        </div>
+                        <div class="kpi-trend up success">
+                            <i data-lucide="trending-up"></i>
+                            <span class="kpi-trend-text">+3.2%</span>
+                            <span class="kpi-trend-label">较上季度</span>
+                        </div>
+                    </div>
+
+                    <!-- 人工费占比 -->
+                    <div class="kpi-card">
+                        <div class="kpi-header">
+                            <span class="kpi-label">人工费占比</span>
+                            <div class="kpi-icon info">
+                                <i data-lucide="hard-hat"></i>
+                            </div>
+                        </div>
+                        <div class="kpi-value">
+                            <span class="kpi-number" id="kpi-labor">28.5</span>
+                            <span class="kpi-unit">%</span>
+                        </div>
+                        <div class="kpi-trend up">
+                            <i data-lucide="trending-up"></i>
+                            <span class="kpi-trend-text">+1.8%</span>
+                            <span class="kpi-trend-label">较上季度</span>
+                        </div>
+                    </div>
+
+                    <!-- 材料费占比 -->
+                    <div class="kpi-card">
+                        <div class="kpi-header">
+                            <span class="kpi-label">材料费占比</span>
+                            <div class="kpi-icon success">
+                                <i data-lucide="package"></i>
+                            </div>
+                        </div>
+                        <div class="kpi-value">
+                            <span class="kpi-number" id="kpi-material">55.2</span>
+                            <span class="kpi-unit">%</span>
+                        </div>
+                        <div class="kpi-trend down">
+                            <i data-lucide="trending-down"></i>
+                            <span class="kpi-trend-text">-0.6%</span>
+                            <span class="kpi-trend-label">较上季度</span>
+                        </div>
+                    </div>
+
+                    <!-- 机械费占比 -->
+                    <div class="kpi-card">
+                        <div class="kpi-header">
+                            <span class="kpi-label">机械费占比</span>
+                            <div class="kpi-icon warning">
+                                <i data-lucide="cog"></i>
+                            </div>
+                        </div>
+                        <div class="kpi-value">
+                            <span class="kpi-number" id="kpi-machine">8.3</span>
+                            <span class="kpi-unit">%</span>
+                        </div>
+                        <div class="kpi-trend up">
+                            <i data-lucide="trending-up"></i>
+                            <span class="kpi-trend-text">+0.4%</span>
+                            <span class="kpi-trend-label">较上季度</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 图表区域 -->
+                <div class="charts-row">
+                    <!-- 柱状图 -->
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <div>
+                                <h2 class="chart-title">分部分项工程造价指标</h2>
+                                <p class="chart-subtitle">各分部工程单方造价对比（元/m²）</p>
+                            </div>
+                            <div class="chart-legend">
+                                <span class="legend-item">
+                                    <span class="legend-dot primary"></span>本季度
+                                </span>
+                                <span class="legend-item">
+                                    <span class="legend-dot secondary"></span>上季度
+                                </span>
+                            </div>
+                        </div>
+                        <div class="bar-chart" id="bar-chart">
+                            <!-- 柱状图由 JS 渲染 -->
+                        </div>
+                    </div>
+
+                    <!-- 饼图 -->
+                    <div class="chart-card">
+                        <div>
+                            <h2 class="chart-title">费用构成比例</h2>
+                            <p class="chart-subtitle">本季度各项费用占比</p>
+                        </div>
+                        <div class="pie-chart-wrapper">
+                            <div class="pie-chart">
+                                <div class="pie-chart-inner" id="pie-chart"></div>
+                                <div class="pie-chart-center">
+                                    <div class="pie-chart-center-inner">
+                                        <span class="pie-center-label">总造价</span>
+                                        <span class="pie-center-value" id="pie-center-value">2,856</span>
+                                        <span class="pie-center-unit">元/m²</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="pie-legend">
+                            <div class="pie-legend-item">
+                                <div class="pie-legend-left">
+                                    <span class="pie-legend-dot" style="background-color: var(--color-primary);"></span>
+                                    <span class="pie-legend-name">材料费</span>
+                                </div>
+                                <span class="pie-legend-value">55.2%</span>
+                            </div>
+                            <div class="pie-legend-item">
+                                <div class="pie-legend-left">
+                                    <span class="pie-legend-dot" style="background-color: var(--state-info);"></span>
+                                    <span class="pie-legend-name">人工费</span>
+                                </div>
+                                <span class="pie-legend-value">28.5%</span>
+                            </div>
+                            <div class="pie-legend-item">
+                                <div class="pie-legend-left">
+                                    <span class="pie-legend-dot" style="background-color: var(--state-warning);"></span>
+                                    <span class="pie-legend-name">机械费</span>
+                                </div>
+                                <span class="pie-legend-value">8.3%</span>
+                            </div>
+                            <div class="pie-legend-item">
+                                <div class="pie-legend-left">
+                                    <span class="pie-legend-dot" style="background-color: var(--color-text-tertiary);"></span>
+                                    <span class="pie-legend-name">其他费用</span>
+                                </div>
+                                <span class="pie-legend-value">8.0%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 数据表格 -->
+                <div class="data-table-card">
+                    <div class="data-table-header">
+                        <div>
+                            <h2 class="data-table-title">单方造价参考表</h2>
+                            <p class="data-table-subtitle">常见类型建筑的单方造价参考数据</p>
+                        </div>
+                        <button class="export-btn" id="table-export-btn">
+                            <i data-lucide="download"></i>
+                            <span>导出</span>
+                        </button>
+                    </div>
+                    <div class="data-table-wrapper">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>建筑类型</th>
+                                    <th>结构形式</th>
+                                    <th>层数</th>
+                                    <th class="text-right">单方造价（元/m²）</th>
+                                    <th>适用地区</th>
+                                    <th>备注</th>
+                                </tr>
+                            </thead>
+                            <tbody id="data-table-body">
+                                <tr>
+                                    <td class="building-type">高层住宅</td>
+                                    <td>剪力墙</td>
+                                    <td>18-33层</td>
+                                    <td class="text-right price-range">2,800 - 3,500</td>
+                                    <td>一线城市</td>
+                                    <td class="remark" title="含精装修标准">含精装修标准</td>
+                                </tr>
+                                <tr>
+                                    <td class="building-type">多层住宅</td>
+                                    <td>框架结构</td>
+                                    <td>6-11层</td>
+                                    <td class="text-right price-range">1,800 - 2,400</td>
+                                    <td>全国通用</td>
+                                    <td class="remark" title="含普通装修">含普通装修</td>
+                                </tr>
+                                <tr>
+                                    <td class="building-type">办公楼</td>
+                                    <td>框架-核心筒</td>
+                                    <td>20-40层</td>
+                                    <td class="text-right price-range">4,200 - 6,800</td>
+                                    <td>一线城市</td>
+                                    <td class="remark" title="甲级写字楼标准">甲级写字楼标准</td>
+                                </tr>
+                                <tr>
+                                    <td class="building-type">商业综合体</td>
+                                    <td>框架结构</td>
+                                    <td>4-8层</td>
+                                    <td class="text-right price-range">3,500 - 5,500</td>
+                                    <td>一二线城市</td>
+                                    <td class="remark" title="含中庭及公共区域">含中庭及公共区域</td>
+                                </tr>
+                                <tr>
+                                    <td class="building-type">医院</td>
+                                    <td>框架结构</td>
+                                    <td>5-15层</td>
+                                    <td class="text-right price-range">4,000 - 6,000</td>
+                                    <td>全国通用</td>
+                                    <td class="remark" title="含医疗专项设备安装">含医疗专项设备安装</td>
+                                </tr>
+                                <tr>
+                                    <td class="building-type">学校教学楼</td>
+                                    <td>框架结构</td>
+                                    <td>4-6层</td>
+                                    <td class="text-right price-range">2,200 - 3,200</td>
+                                    <td>全国通用</td>
+                                    <td class="remark" title="含多媒体教室标准">含多媒体教室标准</td>
+                                </tr>
+                                <tr>
+                                    <td class="building-type">工业厂房</td>
+                                    <td>钢结构</td>
+                                    <td>1-3层</td>
+                                    <td class="text-right price-range">1,200 - 2,000</td>
+                                    <td>全国通用</td>
+                                    <td class="remark" title="含普通水电安装">含普通水电安装</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="table-pagination">
+                        <span class="table-pagination-info">共 7 条数据</span>
+                        <div class="table-pagination-buttons">
+                            <button class="table-page-btn" disabled>上一页</button>
+                            <button class="table-page-btn active">1</button>
+                            <button class="table-page-btn" disabled>下一页</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 空状态提示区域 -->
+                <div class="empty-card">
+                    <div class="empty-card-icon">
+                        <i data-lucide="database"></i>
+                    </div>
+                    <p class="empty-card-title">更多指标数据待接入</p>
+                    <p class="empty-card-desc">支持自定义上传项目造价数据，系统将自动生成造价指标分析报告，辅助造价决策。</p>
+                    <button class="btn btn-primary btn-sm">
+                        <i data-lucide="upload"></i>
+                        <span>上传项目数据</span>
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <script src="assets/js/common.js"></script>
+    <script>
+        /* ============================================
+           造价指标页面交互逻辑
+           ============================================ */
+        (function () {
+            'use strict';
+
+            // ========== 柱状图数据 ==========
+            const barChartData = [
+                { label: '地基基础', current: 380, previous: 340, max: 1000 },
+                { label: '主体结构', current: 620, previous: 580, max: 1000 },
+                { label: '装饰装修', current: 510, previous: 480, max: 1000 },
+                { label: '建筑电气', current: 320, previous: 300, max: 1000 },
+                { label: '给排水', current: 260, previous: 250, max: 1000 },
+                { label: '暖通空调', current: 420, previous: 400, max: 1000 },
+                { label: '智能化', current: 180, previous: 160, max: 1000 },
+                { label: '电梯', current: 166, previous: 150, max: 1000 }
+            ];
+
+            // ========== 渲染柱状图 ==========
+            function renderBarChart() {
+                const container = document.getElementById('bar-chart');
+                if (!container) return;
+
+                const maxVal = Math.max.apply(null, barChartData.map(function (d) { return d.current; })) * 1.1;
+
+                container.innerHTML = barChartData.map(function (item) {
+                    const currentHeight = (item.current / maxVal * 100).toFixed(1) + '%';
+                    const previousHeight = (item.previous / maxVal * 100).toFixed(1) + '%';
+
+                    return `
+                        <div class="bar-group">
+                            <span class="bar-value">${item.current}</span>
+                            <div class="bar-pair">
+                                <div class="bar primary" style="height: ${currentHeight};"></div>
+                                <div class="bar secondary" style="height: ${previousHeight};"></div>
+                            </div>
+                            <span class="bar-label">${item.label}</span>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            // ========== 侧边栏切换 ==========
+            const sidebarToggle = document.getElementById('sidebar-toggle');
+            if (sidebarToggle) {
+                sidebarToggle.addEventListener('click', function () {
+                    CostApp.Sidebar.toggle();
+                });
+            }
+
+            // ========== 刷新按钮 ==========
+            const refreshBtn = document.getElementById('refresh-btn');
+            if (refreshBtn) {
+                refreshBtn.addEventListener('click', function () {
+                    refreshBtn.classList.add('spinning');
+
+                    // 模拟刷新数据
+                    setTimeout(function () {
+                        refreshBtn.classList.remove('spinning');
+                        // 可以在这里添加数据更新动画
+                    }, 1000);
+                });
+            }
+
+            // ========== 地区/季度切换 ==========
+            const regionSelect = document.getElementById('region-select');
+            const quarterSelect = document.getElementById('quarter-select');
+
+            function updateDashboardData() {
+                // 添加加载动画效果
+                const kpiNumbers = document.querySelectorAll('.kpi-number');
+                kpiNumbers.forEach(function (el) {
+                    el.style.opacity = '0.5';
+                });
+
+                setTimeout(function () {
+                    kpiNumbers.forEach(function (el) {
+                        el.style.opacity = '1';
+                    });
+                }, 300);
+            }
+
+            if (regionSelect) {
+                regionSelect.addEventListener('change', updateDashboardData);
+            }
+            if (quarterSelect) {
+                quarterSelect.addEventListener('change', updateDashboardData);
+            }
+
+            // ========== 导出按钮 ==========
+            const exportBtn = document.getElementById('table-export-btn');
+            if (exportBtn) {
+                exportBtn.addEventListener('click', function () {
+                    const originalText = exportBtn.innerHTML;
+                    exportBtn.innerHTML = '<i data-lucide="check"></i><span>已导出</span>';
+                    exportBtn.style.backgroundColor = 'var(--state-success-bg)';
+                    exportBtn.style.color = 'var(--state-success)';
+
+                    if (window.lucide) {
+                        lucide.createIcons({ attrs: { 'stroke-width': 2 } });
+                    }
+
+                    setTimeout(function () {
+                        exportBtn.innerHTML = originalText;
+                        exportBtn.style.backgroundColor = '';
+                        exportBtn.style.color = '';
+                        if (window.lucide) {
+                            lucide.createIcons({ attrs: { 'stroke-width': 2 } });
+                        }
+                    }, 2000);
+                });
+            }
+
+            // ========== 初始化 ==========
+            renderBarChart();
+
+            // 窗口大小变化时重绘（简单起见，此处仅做占位）
+            let resizeTimer;
+            window.addEventListener('resize', function () {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(function () {
+                    // 可以在这里添加响应式图表重绘逻辑
+                }, 200);
+            });
+        })();
+    </script>
+</body>
+</html>

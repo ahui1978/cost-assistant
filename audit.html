@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>审核分析 - 造价智能助手</title>
+    <link rel="stylesheet" href="assets/css/common.css">
+    <script src="https://unpkg.com/lucide@1.8.0/dist/umd/lucide.min.js"></script>
+    <style>
+        /* 审核分析页面专属样式 */
+        .audit-page {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* 筛选栏 */
+        .filter-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 24px;
+            border-bottom: 1px solid var(--color-border-light);
+            background-color: var(--color-bg-secondary);
+            flex-shrink: 0;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .filter-label {
+            font-size: var(--font-size-xs);
+            color: var(--color-text-secondary);
+            white-space: nowrap;
+        }
+
+        .filter-select {
+            height: 32px;
+            padding: 0 10px;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            background-color: var(--color-bg);
+            color: var(--color-text-primary);
+            font-size: var(--font-size-xs);
+            cursor: pointer;
+            outline: none;
+            transition: border-color var(--transition-fast);
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 8px center;
+            padding-right: 28px;
+            min-width: 120px;
+        }
+
+        .filter-select:focus {
+            border-color: var(--color-primary);
+        }
+
+        .type-tabs {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .type-tab {
+            padding: 4px 12px;
+            border-radius: var(--radius-md);
+            font-size: var(--font-size-xs);
+            font-weight: var(--font-weight-medium);
+            color: var(--color-text-secondary);
+            transition: all var(--transition-fast);
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .type-tab:hover {
+            background-color: var(--color-bg-tertiary);
+        }
+
+        .type-tab.active {
+            background-color: var(--color-primary);
+            color: var(--color-text-inverse);
+        }
+
+        .filter-spacer {
+            flex: 1;
+        }
+
+        .search-input-wrapper {
+            position: relative;
+        }
+
+        .search-input-wrapper [data-icon] {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 14px;
+            height: 14px;
+            color: var(--color-text-tertiary);
+            pointer-events: none;
+        }
+
+        .search-input {
+            height: 32px;
+            padding: 0 12px 0 32px;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            background-color: var(--color-bg);
+            color: var(--color-text-primary);
+            font-size: var(--font-size-xs);
+            width: 200px;
+            outline: none;
+            transition: border-color var(--transition-fast);
+        }
+
+        .search-input:focus {
+            border-color: var(--color-primary);
+        }
+
+        .search-input::placeholder {
+            color: var(--color-text-tertiary);
+        }
+
+        /* 内容区 */
+        .audit-content {
+            flex: 1;
+            overflow-y: auto;
+            background-color: var(--color-bg-tertiary);
+            padding: 20px 24px;
+        }
+
+        .audit-list-wrapper {
+            max-width: 960px;
+            margin: 0 auto;
+        }
+
+        .audit-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        /* 审核卡片 */
+        .audit-card {
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--color-border);
+            background-color: var(--color-bg);
+            box-shadow: var(--shadow-sm);
+            transition: all var(--transition-fast);
+            overflow: hidden;
+        }
+
+        .audit-card:hover {
+            box-shadow: var(--shadow-md);
+            border-color: var(--color-primary-light);
+        }
+
+        .audit-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .audit-card-header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 0;
+            flex: 1;
+        }
+
+        .audit-card-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: var(--radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .audit-card-icon.primary { background-color: var(--color-primary-light); color: var(--color-primary); }
+        .audit-card-icon.info { background-color: var(--state-info-bg); color: var(--state-info); }
+        .audit-card-icon.success { background-color: var(--state-success-bg); color: var(--state-success); }
+        .audit-card-icon.warning { background-color: var(--state-warning-bg); color: var(--state-warning); }
+
+        .audit-card-icon [data-icon] {
+            width: 16px;
+            height: 16px;
+        }
+
+        .audit-card-info {
+            min-width: 0;
+            flex: 1;
+        }
+
+        .audit-card-title-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .audit-card-title {
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-medium);
+            color: var(--color-text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .audit-card-meta {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 4px;
+            flex-wrap: wrap;
+        }
+
+        .audit-card-date {
+            font-size: var(--font-size-xs);
+            color: var(--color-text-tertiary);
+            white-space: nowrap;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 0 8px;
+            height: 20px;
+            border-radius: var(--radius-sm);
+            font-size: var(--font-size-xs);
+            font-weight: var(--font-weight-medium);
+            white-space: nowrap;
+        }
+
+        .status-badge::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background-color: currentColor;
+        }
+
+        .status-badge.pending {
+            background-color: var(--color-bg-tertiary);
+            color: var(--color-text-secondary);
+        }
+
+        .status-badge.processing {
+            background-color: var(--state-warning-bg);
+            color: var(--state-warning);
+        }
+
+        .status-badge.completed {
+            background-color: var(--state-success-bg);
+            color: var(--state-success);
+        }
+
+        .audit-card-header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-shrink: 0;
+            margin-left: 16px;
+        }
+
+        .deviation-info {
+            text-align: right;
+        }
+
+        .deviation-label {
+            font-size: var(--font-size-xs);
+            color: var(--color-text-tertiary);
+        }
+
+        .deviation-value {
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-semibold);
+            white-space: nowrap;
+        }
+
+        .deviation-value.warning { color: var(--state-warning); }
+        .deviation-value.success { color: var(--state-success); }
+        .deviation-value.muted { color: var(--color-text-tertiary); }
+
+        .expand-icon {
+            width: 16px;
+            height: 16px;
+            color: var(--color-text-tertiary);
+            transition: transform var(--transition-normal);
+            flex-shrink: 0;
+        }
+
+        .audit-card.open .expand-icon {
+            transform: rotate(180deg);
+        }
+
+        /* 卡片详情 */
+        .audit-card-detail {
+            max-height: 0;
+            overflow: hidden;
+            opacity: 0;
+            transition: max-height 0.35s ease, opacity 0.25s ease;
+            border-top: 1px solid transparent;
+        }
+
+        .audit-card.open .audit-card-detail {
+            max-height: 1200px;
+            opacity: 1;
+            border-top-color: var(--color-border-light);
+        }
+
+        .audit-card-detail-inner {
+            padding: 16px 20px;
+        }
+
+        .detail-section {
+            margin-bottom: 16px;
+        }
+
+        .detail-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .detail-title {
+            font-size: var(--font-size-xs);
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-text-primary);
+            margin-bottom: 10px;
+        }
+
+        /* 偏差明细表 */
+        .deviation-table-wrapper {
+            overflow-x: auto;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--color-border);
+        }
+
+        .deviation-table {
+            width: 100%;
+            font-size: var(--font-size-xs);
+            min-width: 400px;
+        }
+
+        .deviation-table thead tr {
+            background-color: var(--color-bg-secondary);
+        }
+
+        .deviation-table th {
+            padding: 8px 12px;
+            text-align: left;
+            font-weight: var(--font-weight-medium);
+            color: var(--color-text-secondary);
+            white-space: nowrap;
+        }
+
+        .deviation-table th.text-right { text-align: right; }
+
+        .deviation-table td {
+            padding: 8px 12px;
+            border-top: 1px solid var(--color-border-light);
+            color: var(--color-text-primary);
+            white-space: nowrap;
+        }
+
+        .deviation-table td.text-right { text-align: right; }
+
+        .deviation-table td.deviation-rate {
+            font-weight: var(--font-weight-medium);
+        }
+
+        .deviation-rate.warning { color: var(--state-warning); }
+        .deviation-rate.success { color: var(--state-success); }
+
+        /* 风险项列表 */
+        .risk-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .risk-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: var(--radius-md);
+        }
+
+        .risk-item.error { background-color: var(--state-error-bg); }
+        .risk-item.warning { background-color: var(--state-warning-bg); }
+        .risk-item.success { background-color: var(--state-success-bg); }
+
+        .risk-item [data-icon] {
+            width: 14px;
+            height: 14px;
+            margin-top: 2px;
+            flex-shrink: 0;
+        }
+
+        .risk-item.error [data-icon] { color: var(--state-error); }
+        .risk-item.warning [data-icon] { color: var(--state-warning); }
+        .risk-item.success [data-icon] { color: var(--state-success); }
+
+        .risk-text {
+            font-size: var(--font-size-xs);
+            color: var(--color-text-primary);
+            line-height: 1.5;
+        }
+
+        /* 建议列表 */
+        .suggestion-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .suggestion-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .suggestion-number {
+            width: 16px;
+            height: 16px;
+            border-radius: var(--radius-md);
+            background-color: var(--color-primary-light);
+            color: var(--color-primary);
+            font-size: 10px;
+            font-weight: var(--font-weight-medium);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .suggestion-text {
+            font-size: var(--font-size-xs);
+            color: var(--color-text-primary);
+            line-height: 1.6;
+        }
+
+        /* 空状态 */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 80px 20px;
+            text-align: center;
+        }
+
+        .empty-state.hidden {
+            display: none;
+        }
+
+        .empty-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 16px;
+            background-color: var(--color-bg-tertiary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .empty-icon [data-icon] {
+            width: 40px;
+            height: 40px;
+            color: var(--color-text-tertiary);
+        }
+
+        .empty-title {
+            font-size: var(--font-size-base);
+            font-weight: var(--font-weight-medium);
+            color: var(--color-text-primary);
+            margin-bottom: 6px;
+        }
+
+        .empty-desc {
+            font-size: var(--font-size-xs);
+            color: var(--color-text-tertiary);
+            margin-bottom: 20px;
+        }
+
+        /* 待审核状态详情 */
+        .pending-detail {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 24px 0;
+            color: var(--color-text-tertiary);
+        }
+
+        .pending-detail [data-icon] {
+            width: 32px;
+            height: 32px;
+            margin-bottom: 8px;
+        }
+
+        .pending-detail p {
+            font-size: var(--font-size-xs);
+        }
+
+        .start-audit-btn {
+            margin-top: 12px;
+            padding: 6px 16px;
+            border-radius: var(--radius-lg);
+            background-color: var(--color-primary);
+            color: var(--color-text-inverse);
+            font-size: var(--font-size-xs);
+            font-weight: var(--font-weight-medium);
+            transition: background-color var(--transition-fast);
+        }
+
+        .start-audit-btn:hover {
+            background-color: var(--color-primary-hover);
+        }
+
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .filter-bar {
+                padding: 12px 16px;
+                gap: 8px;
+            }
+
+            .filter-group {
+                gap: 6px;
+            }
+
+            .search-input {
+                width: 160px;
+            }
+
+            .audit-content {
+                padding: 16px;
+            }
+
+            .audit-card-header {
+                padding: 12px 16px;
+            }
+
+            .audit-card-detail-inner {
+                padding: 12px 16px;
+            }
+
+            .audit-card-header-right {
+                gap: 12px;
+                margin-left: 12px;
+            }
+
+            .type-tabs {
+                order: 5;
+                width: 100%;
+                overflow-x: auto;
+                padding-bottom: 4px;
+            }
+        }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden">
+    <!-- 侧边栏遮罩（移动端） -->
+    <div class="sidebar-overlay"></div>
+
+    <!-- 左侧导航栏 -->
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <div class="sidebar-logo-icon">
+                <i data-lucide="hard-hat"></i>
+            </div>
+            <span>造价智能助手</span>
+        </div>
+
+        <div class="sidebar-divider"></div>
+
+        <nav class="sidebar-nav">
+            <a href="chat.html" class="nav-item" data-dom-id="nav-chat">
+                <i data-lucide="message-square"></i>
+                <span class="nav-text">智能对话</span>
+            </a>
+            <a href="boq.html" class="nav-item" data-dom-id="nav-boq">
+                <i data-lucide="file-spreadsheet"></i>
+                <span class="nav-text">工程量清单</span>
+            </a>
+            <a href="audit.html" class="nav-item" data-dom-id="nav-audit">
+                <i data-lucide="shield-check"></i>
+                <span class="nav-text">审核分析</span>
+            </a>
+            <a href="dashboard.html" class="nav-item" data-dom-id="nav-dashboard">
+                <i data-lucide="bar-chart-3"></i>
+                <span class="nav-text">造价指标</span>
+            </a>
+            <a href="pipeline.html" class="nav-item" data-dom-id="nav-pipeline">
+                <i data-lucide="git-branch"></i>
+                <span class="nav-text">管线迁改指标</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-user">
+            <div class="user-profile">
+                <div class="user-avatar">张</div>
+                <div class="user-info">
+                    <div class="user-name">张工</div>
+                    <div class="user-role">造价工程师</div>
+                </div>
+                <i data-lucide="settings" style="width:16px;height:16px;color:var(--color-text-tertiary);flex-shrink:0;"></i>
+            </div>
+        </div>
+    </aside>
+
+    <!-- 主内容区 -->
+    <main class="main-content audit-page">
+        <!-- 顶部操作栏 -->
+        <header class="top-header">
+            <div class="flex items-center gap-3 min-w-0">
+                <button class="sidebar-toggle" id="sidebar-toggle">
+                    <i data-lucide="menu"></i>
+                </button>
+                <h1 class="page-title">审核分析</h1>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-primary" id="btn-new-audit">
+                    <i data-lucide="plus"></i>
+                    <span>新建审核</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- 筛选栏 -->
+        <div class="filter-bar">
+            <div class="filter-group">
+                <label class="filter-label">项目</label>
+                <select class="filter-select" id="project-filter">
+                    <option value="all">全部项目</option>
+                    <option value="1">城市综合体A区</option>
+                    <option value="2">市政道路改造工程</option>
+                    <option value="3">产业园二期建设</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label class="filter-label">类型</label>
+                <div class="type-tabs" id="type-tabs">
+                    <div class="type-tab active" data-type="all">全部</div>
+                    <div class="type-tab" data-type="estimate">概算审核</div>
+                    <div class="type-tab" data-type="budget">预算审核</div>
+                    <div class="type-tab" data-type="settlement">结算审核</div>
+                </div>
+            </div>
+
+            <div class="filter-spacer"></div>
+
+            <div class="search-input-wrapper">
+                <i data-lucide="search"></i>
+                <input type="text" class="search-input" id="search-input" placeholder="搜索审核记录...">
+            </div>
+        </div>
+
+        <!-- 内容区 -->
+        <div class="audit-content">
+            <div class="audit-list-wrapper">
+                <!-- 审核记录卡片列表 -->
+                <div class="audit-list" id="audit-list">
+
+                    <!-- 卡片1：审核中 -->
+                    <div class="audit-card" data-type="estimate" data-project="1" data-status="processing">
+                        <div class="audit-card-header">
+                            <div class="audit-card-header-left">
+                                <div class="audit-card-icon primary">
+                                    <i data-lucide="building-2"></i>
+                                </div>
+                                <div class="audit-card-info">
+                                    <div class="audit-card-title-row">
+                                        <span class="audit-card-title">城市综合体A区 - 主体结构工程</span>
+                                        <span class="tag tag-info">概算审核</span>
+                                    </div>
+                                    <div class="audit-card-meta">
+                                        <span class="audit-card-date">2026-06-28 创建</span>
+                                        <span class="status-badge processing">审核中</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="audit-card-header-right">
+                                <div class="deviation-info">
+                                    <div class="deviation-label">偏差率</div>
+                                    <div class="deviation-value warning">+3.2%</div>
+                                </div>
+                                <i data-lucide="chevron-down" class="expand-icon"></i>
+                            </div>
+                        </div>
+                        <div class="audit-card-detail">
+                            <div class="audit-card-detail-inner">
+                                <!-- 偏差明细 -->
+                                <div class="detail-section">
+                                    <h3 class="detail-title">偏差明细</h3>
+                                    <div class="deviation-table-wrapper">
+                                        <table class="deviation-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>费用项目</th>
+                                                    <th class="text-right">送审金额(万)</th>
+                                                    <th class="text-right">审核金额(万)</th>
+                                                    <th class="text-right">偏差率</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td>土建工程</td>
+                                                    <td class="text-right">2,450.00</td>
+                                                    <td class="text-right">2,380.50</td>
+                                                    <td class="text-right deviation-rate warning">+2.84%</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>安装工程</td>
+                                                    <td class="text-right">860.00</td>
+                                                    <td class="text-right">812.40</td>
+                                                    <td class="text-right deviation-rate warning">+5.53%</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>装饰工程</td>
+                                                    <td class="text-right">520.00</td>
+                                                    <td class="text-right">510.80</td>
+                                                    <td class="text-right deviation-rate success">+1.77%</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                <!-- 风险项 -->
+                                <div class="detail-section">
+                                    <h3 class="detail-title">风险项</h3>
+                                    <div class="risk-list">
+                                        <div class="risk-item error">
+                                            <i data-lucide="alert-triangle"></i>
+                                            <span class="risk-text">安装工程电气部分定额套用偏高，建议重新核对该分部定额</span>
+                                        </div>
+                                        <div class="risk-item warning">
+                                            <i data-lucide="alert-circle"></i>
+                                            <span class="risk-text">商品混凝土价格未按最新信息价调整，存在材料价差风险</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- 审核建议 -->
+                                <div class="detail-section">
+                                    <h3 class="detail-title">审核建议</h3>
+                                    <div class="suggestion-list">
+                                        <div class="suggestion-item">
+                                            <span class="suggestion-number">1</span>
+                                            <span class="suggestion-text">对安装工程电气部分定额进行全面复核，重点排查高压电缆敷设定额</span>
+                                        </div>
+                                        <div class="suggestion-item">
+                                            <span class="suggestion-number">2</span>
+                                            <span class="suggestion-text">材料价格应按照当地2026年第二季度信息价进行调差修正</span>
+                                        </div>
+                                        <div class="suggestion-item">
+                                            <span class="suggestion-number">3</span>
+                                            <span class="suggestion-text">建议组织建设单位与施工单位进行现场踏勘核实工程量</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 卡片2：待审核 -->
+                    <div class="audit-card" data-type="budget" data-project="2" data-status="pending">
+                        <div class="audit-card-header">
+                            <div class="audit-card-header-left">
+                                <div class="audit-card-icon info">
+                                    <i data-lucide="route"></i>
+                                </div>
+                                <div class="audit-card-info">
+                                    <div class="audit-card-title-row">
+                                        <span class="audit-card-title">市政道路改造工程 - 路基路面</span>
+                                        <span class="tag tag-primary">预算审核</span>
+                                    </div>
+                                    <div class="audit-card-meta">
+                                        <span class="audit-card-date">2026-06-25 创建</span>
+                                        <span class="status-badge pending">待审核</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="audit-card-header-right">
+                                <div class="deviation-info">
+                                    <div class="deviation-label">偏差率</div>
+                                    <div class="deviation-value muted">--</div>
+                                </div>
+                                <i data-lucide="chevron-down" class="expand-icon"></i>
+                            </div>
+                        </div>
+                        <div class="audit-card-detail">
+                            <div class="audit-card-detail-inner">
+                                <div class="pending-detail">
+                                    <i data-lucide="clock"></i>
+                                    <p>审核尚未开始，点击"开始审核"以启动智能分析</p>
+                                    <button class="start-audit-btn">开始审核</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 卡片3：已完成 -->
+                    <div class="audit-card" data-type="settlement" data-project="3" data-status="completed">
+                        <div class="audit-card-header">
+                            <div class="audit-card-header-left">
+                                <div class="audit-card-icon success">
+                                    <i data-lucide="factory"></i>
+                                </div>
+                                <div class="audit-card-info">
+                                    <div class="audit-card-title-row">
+                                        <span class="audit-card-title">产业园二期建设 - 厂房及配套</span>
+                                        <span class="tag tag-success">结算审核</span>
+                                    </div>
+                                    <div class="audit-card-meta">
+                                        <span class="audit-card-date">2026-06-15 创建</span>
+                                        <span class="status-badge completed">已完成</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="audit-card-header-right">
+                                <div class="deviation-info">
+                                    <div class="deviation-label">偏差率</div>
+                                    <div class="deviation-value success">-1.8%</div>
+                                </div>
+                                <i data-lucide="chevron-down" class="expand-icon"></i>
+                            </div>
+                        </div>
+                        <div class="audit-card-detail">
+                            <div class="audit-card-detail-inner">
+                                <!-- 偏差明细 -->
+                                <div class="detail-section">
+                                    <h3 class="detail-title">偏差明细</h3>
+                                    <div class="deviation-table-wrapper">
+                                        <table class="deviation-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>费用项目</th>
+                                                    <th class="text-right">送审金额(万)</th>
+                                                    <th class="text-right">审核金额(万)</th>
+                                                    <th class="text-right">偏差率</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td>厂房主体</td>
+                                                    <td class="text-right">5,800.00</td>
+                                                    <td class="text-right">5,721.60</td>
+                                                    <td class="text-right deviation-rate success">-1.35%</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>配套管网</td>
+                                                    <td class="text-right">920.00</td>
+                                                    <td class="text-right">896.40</td>
+                                                    <td class="text-right deviation-rate success">-2.57%</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>道路及硬化</td>
+                                                    <td class="text-right">340.00</td>
+                                                    <td class="text-right">338.66</td>
+                                                    <td class="text-right deviation-rate success">-0.39%</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                <!-- 风险项 -->
+                                <div class="detail-section">
+                                    <h3 class="detail-title">风险项</h3>
+                                    <div class="risk-list">
+                                        <div class="risk-item success">
+                                            <i data-lucide="check-circle-2"></i>
+                                            <span class="risk-text">整体偏差率控制在合理范围内，审核通过</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- 审核建议 -->
+                                <div class="detail-section">
+                                    <h3 class="detail-title">审核建议</h3>
+                                    <div class="suggestion-list">
+                                        <div class="suggestion-item">
+                                            <span class="suggestion-number">1</span>
+                                            <span class="suggestion-text">配套管网部分签证变更较多，建议后续加强施工过程变更管理</span>
+                                        </div>
+                                        <div class="suggestion-item">
+                                            <span class="suggestion-number">2</span>
+                                            <span class="suggestion-text">审核报告已生成，可下载后提交建设单位审批</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- 空状态 -->
+                <div class="empty-state hidden" id="audit-empty">
+                    <div class="empty-icon">
+                        <i data-lucide="shield-check"></i>
+                    </div>
+                    <p class="empty-title">暂无审核记录</p>
+                    <p class="empty-desc">点击上方"新建审核"开始使用</p>
+                    <button class="btn btn-primary">
+                        <i data-lucide="plus"></i>
+                        <span>新建审核</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="assets/js/common.js"></script>
+    <script>
+        /* ============================================
+           审核分析页面交互逻辑
+           ============================================ */
+        (function () {
+            'use strict';
+
+            // ========== DOM 元素 ==========
+            const sidebarToggle = document.getElementById('sidebar-toggle');
+            const auditCards = document.querySelectorAll('.audit-card');
+            const typeTabs = document.querySelectorAll('.type-tab');
+            const projectFilter = document.getElementById('project-filter');
+            const searchInput = document.getElementById('search-input');
+            const auditList = document.getElementById('audit-list');
+            const emptyState = document.getElementById('audit-empty');
+            const newAuditBtn = document.getElementById('btn-new-audit');
+
+            // ========== 侧边栏切换 ==========
+            if (sidebarToggle) {
+                sidebarToggle.addEventListener('click', function () {
+                    CostApp.Sidebar.toggle();
+                });
+            }
+
+            // ========== 卡片展开/收起 ==========
+            auditCards.forEach(function (card) {
+                const header = card.querySelector('.audit-card-header');
+                if (!header) return;
+
+                header.addEventListener('click', function () {
+                    const isOpen = card.classList.contains('open');
+
+                    // 先关闭所有其他卡片
+                    auditCards.forEach(function (otherCard) {
+                        if (otherCard !== card) {
+                            otherCard.classList.remove('open');
+                        }
+                    });
+
+                    // 切换当前卡片
+                    if (isOpen) {
+                        card.classList.remove('open');
+                    } else {
+                        card.classList.add('open');
+                    }
+                });
+            });
+
+            // ========== 类型筛选 ==========
+            let currentType = 'all';
+            let currentProject = 'all';
+            let currentSearch = '';
+
+            typeTabs.forEach(function (tab) {
+                tab.addEventListener('click', function () {
+                    // 移除所有激活状态
+                    typeTabs.forEach(function (t) {
+                        t.classList.remove('active');
+                    });
+                    // 添加当前激活状态
+                    tab.classList.add('active');
+                    currentType = tab.getAttribute('data-type');
+                    filterCards();
+                });
+            });
+
+            // 项目筛选
+            if (projectFilter) {
+                projectFilter.addEventListener('change', function () {
+                    currentProject = this.value;
+                    filterCards();
+                });
+            }
+
+            // 搜索筛选
+            if (searchInput) {
+                searchInput.addEventListener('input', CostApp.Utils.debounce(function () {
+                    currentSearch = this.value.toLowerCase();
+                    filterCards();
+                }, 200));
+            }
+
+            // 综合筛选
+            function filterCards() {
+                let visibleCount = 0;
+
+                auditCards.forEach(function (card) {
+                    const cardType = card.getAttribute('data-type');
+                    const cardProject = card.getAttribute('data-project');
+                    const cardTitle = card.querySelector('.audit-card-title').textContent.toLowerCase();
+
+                    const typeMatch = currentType === 'all' || cardType === currentType;
+                    const projectMatch = currentProject === 'all' || cardProject === currentProject;
+                    const searchMatch = currentSearch === '' || cardTitle.indexOf(currentSearch) !== -1;
+
+                    if (typeMatch && projectMatch && searchMatch) {
+                        card.style.display = '';
+                        visibleCount++;
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+
+                // 空状态切换
+                if (visibleCount === 0) {
+                    auditList.style.display = 'none';
+                    emptyState.classList.remove('hidden');
+                } else {
+                    auditList.style.display = '';
+                    emptyState.classList.add('hidden');
+                }
+            }
+
+            // ========== 开始审核按钮 ==========
+            document.querySelectorAll('.start-audit-btn').forEach(function (btn) {
+                btn.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    const card = btn.closest('.audit-card');
+                    const statusBadge = card.querySelector('.status-badge');
+                    const deviationValue = card.querySelector('.deviation-value');
+
+                    // 更新状态
+                    statusBadge.className = 'status-badge processing';
+                    statusBadge.textContent = '审核中';
+
+                    // 更新偏差率为加载状态
+                    deviationValue.className = 'deviation-value muted';
+                    deviationValue.textContent = '计算中...';
+
+                    // 关闭卡片
+                    card.classList.remove('open');
+
+                    // 模拟审核过程
+                    setTimeout(function () {
+                        // 审核完成
+                        statusBadge.className = 'status-badge completed';
+                        statusBadge.textContent = '已完成';
+
+                        deviationValue.className = 'deviation-value success';
+                        deviationValue.textContent = '-2.1%';
+
+                        // 更新卡片状态属性
+                        card.setAttribute('data-status', 'completed');
+                    }, 2500);
+                });
+            });
+
+            // ========== 新建审核按钮 ==========
+            if (newAuditBtn) {
+                newAuditBtn.addEventListener('click', function () {
+                    alert('新建审核功能：请选择要审核的项目文件');
+                });
+            }
+        })();
+    </script>
+</body>
+</html>

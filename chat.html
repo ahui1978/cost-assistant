@@ -1,0 +1,1889 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>智能对话 - 造价智能助手</title>
+    <link rel="stylesheet" href="assets/css/common.css">
+    <script src="https://unpkg.com/lucide@1.8.0/dist/umd/lucide.min.js"></script>
+    <style>
+        /* 聊天页面专属样式 */
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .chat-messages-wrapper {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px 0;
+        }
+
+        .chat-content {
+            max-width: 768px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        /* 欢迎界面 */
+        .welcome-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding-top: 12vh;
+            text-align: center;
+        }
+
+        .welcome-avatar {
+            width: 64px;
+            height: 64px;
+            border-radius: 16px;
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 16px rgba(99, 102, 241, 0.25);
+        }
+
+        .welcome-avatar [data-icon] {
+            width: 32px;
+            height: 32px;
+            color: var(--color-text-inverse);
+        }
+
+        .welcome-title {
+            font-size: 28px;
+            font-weight: var(--font-weight-bold);
+            color: var(--color-text-primary);
+            line-height: var(--line-height-tight);
+            margin-bottom: 8px;
+            text-wrap: balance;
+        }
+
+        .welcome-subtitle {
+            font-size: var(--font-size-md);
+            color: var(--color-text-secondary);
+            max-width: 480px;
+            margin-bottom: 40px;
+            line-height: 1.6;
+        }
+
+        .quick-questions {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            width: 100%;
+            max-width: 512px;
+        }
+
+        .quick-question {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 16px;
+            border-radius: var(--radius-xl);
+            background-color: var(--color-surface);
+            border: 1px solid var(--color-border);
+            box-shadow: var(--shadow-sm);
+            text-align: left;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .quick-question:hover {
+            border-color: var(--color-primary);
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+        }
+
+        .quick-question-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: var(--radius-lg);
+            background-color: var(--color-primary-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .quick-question-icon [data-icon] {
+            width: 16px;
+            height: 16px;
+            color: var(--color-primary);
+        }
+
+        .quick-question-content {
+            min-width: 0;
+            flex: 1;
+        }
+
+        .quick-question-title {
+            font-size: var(--font-size-base);
+            font-weight: var(--font-weight-medium);
+            color: var(--color-text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .quick-question-desc {
+            font-size: var(--font-size-xs);
+            color: var(--color-text-tertiary);
+            margin-top: 2px;
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        /* 消息气泡 */
+        .messages-list {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .message {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: var(--radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .message-avatar.ai {
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
+        }
+
+        .message-avatar.ai [data-icon] {
+            width: 16px;
+            height: 16px;
+            color: var(--color-text-inverse);
+        }
+
+        .message-avatar.user {
+            background-color: var(--color-bg-tertiary);
+        }
+
+        .message-avatar.user [data-icon] {
+            width: 16px;
+            height: 16px;
+            color: var(--color-text-secondary);
+        }
+
+        .message-bubble-wrapper {
+            min-width: 0;
+            max-width: 85%;
+        }
+
+        .message.user .message-bubble-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+
+        .message-bubble {
+            padding: 12px 16px;
+            font-size: var(--font-size-base);
+            line-height: 1.7;
+            word-break: break-word;
+        }
+
+        .message.ai .message-bubble {
+            background-color: var(--color-bg-tertiary);
+            color: var(--color-text-primary);
+            border-radius: var(--radius-xl);
+            border-top-left-radius: var(--radius-md);
+        }
+
+        .message.user .message-bubble {
+            background-color: var(--color-primary);
+            color: var(--color-text-inverse);
+            border-radius: var(--radius-xl);
+            border-top-right-radius: var(--radius-md);
+        }
+
+        .message-time {
+            font-size: var(--font-size-xs);
+            color: var(--color-text-tertiary);
+            margin-top: 6px;
+        }
+
+        .message.user .message-time {
+            text-align: right;
+        }
+
+        /* 代码块 / 计算结果样式 */
+        .result-box {
+            background-color: var(--color-surface);
+            border: 1px solid var(--color-border-light);
+            border-radius: var(--radius-lg);
+            padding: 12px;
+            margin: 8px 0;
+        }
+
+        .result-box p {
+            font-size: var(--font-size-sm);
+            margin-bottom: 4px;
+        }
+
+        .result-box p:last-child {
+            margin-bottom: 0;
+        }
+
+        .result-highlight {
+            color: var(--color-primary);
+            font-weight: var(--font-weight-semibold);
+        }
+
+        /* 输入中动画 */
+        .typing-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 12px 16px;
+        }
+
+        .typing-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background-color: var(--color-text-tertiary);
+            animation: typing-bounce 1.4s infinite ease-in-out both;
+        }
+
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes typing-bounce {
+            0%, 80%, 100% { transform: scale(0.6); opacity: 0.5; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+
+        /* 底部输入栏 */
+        .chat-input-container {
+            flex-shrink: 0;
+            border-top: 1px solid var(--color-border-light);
+            background-color: var(--color-bg);
+        }
+
+        .chat-input-inner {
+            max-width: 768px;
+            margin: 0 auto;
+            padding: 16px 24px;
+        }
+
+        .chat-input-box {
+            display: flex;
+            align-items: flex-end;
+            gap: 12px;
+            padding: 8px;
+            border-radius: var(--radius-xl);
+            background-color: var(--color-bg-tertiary);
+            border: 1px solid var(--color-border);
+            box-shadow: var(--shadow-sm);
+            transition: border-color var(--transition-fast);
+        }
+
+        .chat-input-box:focus-within {
+            border-color: var(--color-primary);
+        }
+
+        .chat-input-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: var(--radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--color-text-tertiary);
+            transition: all var(--transition-fast);
+            flex-shrink: 0;
+        }
+
+        .chat-input-btn:hover {
+            color: var(--color-text-secondary);
+            background-color: var(--color-border-light);
+        }
+
+        .chat-input-btn [data-icon] {
+            width: 20px;
+            height: 20px;
+        }
+
+        .chat-textarea {
+            flex: 1;
+            min-width: 0;
+            resize: none;
+            background: transparent;
+            border: none;
+            outline: none;
+            font-size: var(--font-size-base);
+            line-height: 1.6;
+            color: var(--color-text-primary);
+            padding: 8px 0;
+            max-height: 120px;
+            font-family: inherit;
+        }
+
+        .chat-textarea::placeholder {
+            color: var(--color-text-tertiary);
+        }
+
+        .chat-send-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-lg);
+            background-color: var(--color-primary);
+            color: var(--color-text-inverse);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--transition-fast);
+            flex-shrink: 0;
+        }
+
+        .chat-send-btn:hover {
+            background-color: var(--color-primary-hover);
+        }
+
+        .chat-send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .chat-send-btn [data-icon] {
+            width: 20px;
+            height: 20px;
+        }
+
+        .chat-disclaimer {
+            font-size: var(--font-size-xs);
+            color: var(--color-text-tertiary);
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        /* ===== 顶部设置栏 ===== */
+        .chat-top-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 24px;
+            border-bottom: 1px solid var(--color-border-light);
+            background-color: var(--color-bg);
+            flex-shrink: 0;
+        }
+
+        .chat-top-title {
+            font-size: var(--font-size-md);
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-text-primary);
+        }
+
+        .chat-top-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .top-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: var(--radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--color-text-secondary);
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            transition: all var(--transition-fast);
+        }
+
+        .top-btn:hover {
+            background-color: var(--color-bg-tertiary);
+            color: var(--color-text-primary);
+        }
+
+        .top-btn [data-icon] {
+            width: 18px;
+            height: 18px;
+        }
+
+        .model-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: var(--radius-full);
+            font-size: var(--font-size-xs);
+            font-weight: var(--font-weight-medium);
+            background-color: var(--color-primary-light);
+            color: var(--color-primary);
+            max-width: 180px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .model-badge.mock {
+            background-color: var(--state-warning-bg);
+            color: var(--state-warning);
+        }
+
+        /* ===== 配置模态框 ===== */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all var(--transition-normal);
+        }
+
+        .modal-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-dialog {
+            width: 90%;
+            max-width: 460px;
+            background-color: var(--color-surface);
+            border-radius: var(--radius-xl);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+            transform: translateY(20px) scale(0.95);
+            transition: all var(--transition-normal);
+        }
+
+        .modal-overlay.show .modal-dialog {
+            transform: translateY(0) scale(1);
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 20px;
+            border-bottom: 1px solid var(--color-border-light);
+        }
+
+        .modal-title {
+            font-size: var(--font-size-md);
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-text-primary);
+        }
+
+        .modal-close {
+            width: 32px;
+            height: 32px;
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            color: var(--color-text-tertiary);
+            transition: all var(--transition-fast);
+        }
+
+        .modal-close:hover {
+            background-color: var(--color-bg-tertiary);
+            color: var(--color-text-primary);
+        }
+
+        .modal-close [data-icon] {
+            width: 18px;
+            height: 18px;
+        }
+
+        .modal-body {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-label {
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-medium);
+            color: var(--color-text-primary);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            font-size: var(--font-size-sm);
+            color: var(--color-text-primary);
+            background-color: var(--color-bg);
+            outline: none;
+            transition: border-color var(--transition-fast);
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+
+        .form-input:focus {
+            border-color: var(--color-primary);
+        }
+
+        .form-input::placeholder {
+            color: var(--color-text-tertiary);
+        }
+
+        .form-hint {
+            font-size: var(--font-size-xs);
+            color: var(--color-text-tertiary);
+            line-height: 1.5;
+        }
+
+        .form-hint.warning {
+            color: var(--state-warning);
+        }
+
+        .switch-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 0;
+        }
+
+        .switch-label {
+            font-size: var(--font-size-sm);
+            color: var(--color-text-primary);
+        }
+
+        .switch-desc {
+            font-size: var(--font-size-xs);
+            color: var(--color-text-tertiary);
+            margin-top: 2px;
+        }
+
+        .switch {
+            position: relative;
+            width: 44px;
+            height: 24px;
+            flex-shrink: 0;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .switch-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--color-border);
+            border-radius: 24px;
+            transition: background-color var(--transition-fast);
+        }
+
+        .switch-slider::before {
+            content: "";
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            border-radius: 50%;
+            transition: transform var(--transition-fast);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+
+        .switch input:checked + .switch-slider {
+            background-color: var(--color-primary);
+        }
+
+        .switch input:checked + .switch-slider::before {
+            transform: translateX(20px);
+        }
+
+        .modal-footer {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 10px;
+            padding: 14px 20px;
+            border-top: 1px solid var(--color-border-light);
+        }
+
+        .btn-secondary {
+            padding: 8px 16px;
+            border-radius: var(--radius-md);
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-medium);
+            border: 1px solid var(--color-border);
+            background-color: var(--color-bg);
+            color: var(--color-text-secondary);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--color-bg-tertiary);
+            color: var(--color-text-primary);
+        }
+
+        .btn-primary {
+            padding: 8px 16px;
+            border-radius: var(--radius-md);
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-medium);
+            border: none;
+            background-color: var(--color-primary);
+            color: var(--color-text-inverse);
+            cursor: pointer;
+            transition: background-color var(--transition-fast);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--color-primary-hover);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* 消息中代码块样式 */
+        .message-bubble code {
+            background-color: rgba(0, 0, 0, 0.06);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.9em;
+            font-family: "Consolas", "Monaco", monospace;
+        }
+
+        .message.user .message-bubble code {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .message-bubble pre {
+            background-color: rgba(0, 0, 0, 0.04);
+            padding: 12px;
+            border-radius: var(--radius-md);
+            overflow-x: auto;
+            margin: 8px 0;
+        }
+
+        .message-bubble pre code {
+            background: none;
+            padding: 0;
+        }
+
+        /* 工具调用状态 */
+        .tool-call-status {
+            margin-top: 8px;
+            padding: 10px 12px;
+            border-radius: var(--radius-md);
+            background-color: var(--color-bg-tertiary);
+            font-size: var(--font-size-sm);
+        }
+
+        .tool-call-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            padding: 6px 0;
+        }
+
+        .tool-call-item + .tool-call-item {
+            border-top: 1px solid var(--color-border-light);
+        }
+
+        .tool-call-icon {
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+            margin-top: 1px;
+            color: var(--color-primary);
+        }
+
+        .tool-call-icon.loading {
+            animation: spin 1s linear infinite;
+        }
+
+        .tool-call-icon.success {
+            color: var(--state-success);
+        }
+
+        .tool-call-name {
+            font-weight: var(--font-weight-medium);
+            color: var(--color-text-primary);
+        }
+
+        .tool-call-args {
+            color: var(--color-text-tertiary);
+            font-size: var(--font-size-xs);
+            margin-top: 2px;
+            word-break: break-all;
+        }
+
+        .tool-call-result {
+            margin-top: 6px;
+            padding: 8px;
+            background-color: var(--color-bg);
+            border-radius: var(--radius-sm);
+            font-size: var(--font-size-xs);
+            color: var(--color-text-secondary);
+            max-height: 120px;
+            overflow-y: auto;
+        }
+
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .chat-content {
+                padding: 0 16px;
+            }
+
+            .welcome-title {
+                font-size: 22px;
+            }
+
+            .welcome-subtitle {
+                font-size: var(--font-size-sm);
+                margin-bottom: 28px;
+            }
+
+            .quick-questions {
+                grid-template-columns: 1fr;
+                max-width: 100%;
+            }
+
+            .message-bubble-wrapper {
+                max-width: 80%;
+            }
+
+            .chat-input-inner {
+                padding: 12px 16px;
+            }
+        }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden">
+    <!-- 侧边栏遮罩（移动端） -->
+    <div class="sidebar-overlay"></div>
+
+    <!-- 左侧导航栏 -->
+    <aside class="sidebar">
+        <!-- Logo 区域 -->
+        <div class="sidebar-logo">
+            <div class="sidebar-logo-icon">
+                <i data-lucide="bot"></i>
+            </div>
+            <span>造价智能助手</span>
+        </div>
+
+        <div class="sidebar-divider"></div>
+
+        <!-- 导航菜单 -->
+        <nav class="sidebar-nav">
+            <a href="chat.html" class="nav-item" data-dom-id="nav-chat">
+                <i data-lucide="message-square"></i>
+                <span class="nav-text">智能对话</span>
+            </a>
+            <a href="boq.html" class="nav-item" data-dom-id="nav-boq">
+                <i data-lucide="file-spreadsheet"></i>
+                <span class="nav-text">工程量清单</span>
+            </a>
+            <a href="audit.html" class="nav-item" data-dom-id="nav-audit">
+                <i data-lucide="shield-check"></i>
+                <span class="nav-text">审核分析</span>
+            </a>
+            <a href="dashboard.html" class="nav-item" data-dom-id="nav-dashboard">
+                <i data-lucide="bar-chart-3"></i>
+                <span class="nav-text">造价指标</span>
+            </a>
+            <a href="pipeline.html" class="nav-item" data-dom-id="nav-pipeline">
+                <i data-lucide="git-branch"></i>
+                <span class="nav-text">管线迁改指标</span>
+            </a>
+        </nav>
+
+        <!-- 历史会话区域 -->
+        <div class="history-section">
+            <div class="history-header">
+                <span>历史会话</span>
+                <button id="new-chat-btn" title="新建会话">
+                    <i data-lucide="plus"></i>
+                </button>
+            </div>
+            <div class="history-list">
+                <div class="history-item" data-title="混凝土单价分析">
+                    <i data-lucide="message-circle"></i>
+                    <span>混凝土单价分析</span>
+                </div>
+                <div class="history-item" data-title="钢筋工程量计算">
+                    <i data-lucide="message-circle"></i>
+                    <span>钢筋工程量计算</span>
+                </div>
+                <div class="history-item" data-title="土方开挖造价对比">
+                    <i data-lucide="message-circle"></i>
+                    <span>土方开挖造价对比</span>
+                </div>
+                <div class="history-item" data-title="装饰工程清单审核">
+                    <i data-lucide="message-circle"></i>
+                    <span>装饰工程清单审核</span>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- 主聊天区域 -->
+    <main class="main-content chat-container">
+        <!-- 顶部设置栏 -->
+        <div class="chat-top-bar">
+            <div class="chat-top-title">智能对话</div>
+            <div class="chat-top-actions">
+                <span id="model-badge" class="model-badge mock">
+                    <i data-lucide="zap" style="width:12px;height:12px;"></i>
+                    <span>模拟模式</span>
+                </span>
+                <button id="settings-btn" class="top-btn" title="API 设置">
+                    <i data-lucide="settings"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- 消息区域 -->
+        <div class="chat-messages-wrapper">
+            <div class="chat-content">
+                <!-- 欢迎界面 -->
+                <div id="welcome-screen" class="welcome-screen">
+                    <div class="welcome-avatar">
+                        <i data-lucide="bot"></i>
+                    </div>
+                    <h1 class="welcome-title">你好，我是造价智能助手</h1>
+                    <p class="welcome-subtitle">
+                        专注于工程造价领域，为你提供工程量计算、清单编制、造价分析和指标查询等专业服务
+                    </p>
+
+                    <!-- 快捷提问卡片网格 -->
+                    <div class="quick-questions">
+                        <button class="quick-question" data-question="帮我计算一下，一根6m长的C30混凝土梁，截面300mm x 600mm，混凝土用量是多少？">
+                            <div class="quick-question-icon">
+                                <i data-lucide="calculator"></i>
+                            </div>
+                            <div class="quick-question-content">
+                                <div class="quick-question-title">计算混凝土用量</div>
+                                <div class="quick-question-desc">根据图纸尺寸快速计算混凝土工程量</div>
+                            </div>
+                        </button>
+                        <button class="quick-question" data-question="帮我生成一份土建工程的分部分项工程量清单，包含平整场地、土方开挖和回填。">
+                            <div class="quick-question-icon">
+                                <i data-lucide="file-text"></i>
+                            </div>
+                            <div class="quick-question-content">
+                                <div class="quick-question-title">生成工程量清单</div>
+                                <div class="quick-question-desc">按国标格式生成分部分项工程量清单</div>
+                            </div>
+                        </button>
+                        <button class="quick-question" data-question="查询一下高层住宅的单方造价指标，一线城市的标准是多少？">
+                            <div class="quick-question-icon">
+                                <i data-lucide="search"></i>
+                            </div>
+                            <div class="quick-question-content">
+                                <div class="quick-question-title">查询造价指标</div>
+                                <div class="quick-question-desc">查询各类工程的历史造价指标数据</div>
+                            </div>
+                        </button>
+                        <button class="quick-question" data-question="我有一份造价报告，如何进行智能审核来发现异常和风险？">
+                            <div class="quick-question-icon">
+                                <i data-lucide="clipboard-check"></i>
+                            </div>
+                            <div class="quick-question-content">
+                                <div class="quick-question-title">审核造价报告</div>
+                                <div class="quick-question-desc">智能识别造价报告中的异常与风险</div>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 对话消息区域 -->
+                <div id="messages-list" class="messages-list hidden"></div>
+            </div>
+        </div>
+
+        <!-- 底部固定输入栏 -->
+        <div class="chat-input-container">
+            <div class="chat-input-inner">
+                <div class="chat-input-box">
+                    <!-- 附件按钮 -->
+                    <button class="chat-input-btn" title="添加附件">
+                        <i data-lucide="paperclip"></i>
+                    </button>
+
+                    <!-- 输入框 -->
+                    <textarea 
+                        id="chat-input"
+                        rows="1"
+                        placeholder="输入你的问题..." 
+                        class="chat-textarea"
+                    ></textarea>
+
+                    <!-- 发送按钮 -->
+                    <button id="send-btn" class="chat-send-btn" title="发送" disabled>
+                        <i data-lucide="send"></i>
+                    </button>
+                </div>
+
+                <p class="chat-disclaimer">
+                    造价智能助手可能会产生不准确的信息，请注意核实关键数据
+                </p>
+            </div>
+        </div>
+    </main>
+
+    <!-- 设置模态框 -->
+    <div id="settings-modal" class="modal-overlay">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <div class="modal-title">对话设置</div>
+                <button id="modal-close-btn" class="modal-close" title="关闭">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <!-- API 状态 -->
+                <div class="form-group">
+                    <div class="form-label">API 状态</div>
+                    <div id="api-status" class="form-hint" style="font-size:13px;">
+                        <i data-lucide="loader" style="width:12px;height:12px;vertical-align:middle;margin-right:4px;animation:spin 1s linear infinite;"></i>
+                        检测中...
+                    </div>
+                </div>
+
+                <!-- 模型信息（后端配置时显示） -->
+                <div id="model-info-group" class="form-group" style="display:none;">
+                    <div class="form-label">当前模型</div>
+                    <div id="model-name-display" class="form-hint" style="font-size:13px;color:var(--color-text-primary);font-weight:500;">-</div>
+                </div>
+
+                <!-- 模拟模式开关 -->
+                <div class="switch-row">
+                    <div>
+                        <div class="switch-label">模拟模式</div>
+                        <div class="switch-desc">开启后使用内置模拟回复，不调用真实 API</div>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="mock-mode-toggle" checked>
+                        <span class="switch-slider"></span>
+                    </label>
+                </div>
+
+                <!-- 流式输出 -->
+                <div class="switch-row">
+                    <div>
+                        <div class="switch-label">流式输出</div>
+                        <div class="switch-desc">逐字显示回复，体验更流畅</div>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="stream-toggle" checked>
+                        <span class="switch-slider"></span>
+                    </label>
+                </div>
+
+                <!-- 温度 -->
+                <div class="form-group">
+                    <label class="form-label">创造性（Temperature）</label>
+                    <input type="range" id="temp-slider" min="0" max="2" step="0.1" value="0.7" style="width:100%;">
+                    <div class="form-hint" style="display:flex;justify-content:space-between;">
+                        <span>严谨 0</span>
+                        <span id="temp-value">0.7</span>
+                        <span>创意 2</span>
+                    </div>
+                </div>
+
+                <!-- 系统提示词 -->
+                <div class="form-group">
+                    <label class="form-label">系统提示词（可选）</label>
+                    <textarea id="system-prompt" class="form-input" rows="3" placeholder="你是一位资深造价工程师..."></textarea>
+                    <div class="form-hint">留空则使用服务端默认人设</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="modal-cancel-btn" class="btn-secondary">取消</button>
+                <button id="modal-save-btn" class="btn-primary">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="assets/js/common.js"></script>
+    <script>
+        /* ============================================
+           智能对话页面交互逻辑
+           - 后端代理模式：API Key/BaseURL/Model 由服务端环境变量管理
+           - 前端仅调用本地 /api/chat 接口
+           ============================================ */
+        (function () {
+            'use strict';
+
+            // ========== DOM 元素 ==========
+            const welcomeScreen = document.getElementById('welcome-screen');
+            const messagesList = document.getElementById('messages-list');
+            const chatInput = document.getElementById('chat-input');
+            const sendBtn = document.getElementById('send-btn');
+            const newChatBtn = document.getElementById('new-chat-btn');
+            const historyItems = document.querySelectorAll('.history-item');
+            const quickQuestions = document.querySelectorAll('.quick-question');
+            const settingsBtn = document.getElementById('settings-btn');
+            const settingsModal = document.getElementById('settings-modal');
+            const modalCloseBtn = document.getElementById('modal-close-btn');
+            const modalCancelBtn = document.getElementById('modal-cancel-btn');
+            const modalSaveBtn = document.getElementById('modal-save-btn');
+            const mockModeToggle = document.getElementById('mock-mode-toggle');
+            const streamToggle = document.getElementById('stream-toggle');
+            const systemPromptInput = document.getElementById('system-prompt');
+            const tempSlider = document.getElementById('temp-slider');
+            const tempValue = document.getElementById('temp-value');
+            const modelBadge = document.getElementById('model-badge');
+            const apiStatusEl = document.getElementById('api-status');
+            const modelInfoGroup = document.getElementById('model-info-group');
+            const modelNameDisplay = document.getElementById('model-name-display');
+
+            // 消息存储
+            let messages = [];
+            let isTyping = false;
+            let abortController = null;
+
+            // ========== 配置（前端可调参数，敏感信息由后端管理） ==========
+            const config = {
+                mockMode: true,
+                stream: true,
+                temperature: 0.7,
+                systemPrompt: ''
+            };
+
+            // 后端配置状态（从 /api/config 获取）
+            let backendConfig = {
+                configured: false,
+                model: '',
+                systemPrompt: ''
+            };
+
+            // ========== 工具函数：HTML 转义（XSS 防护） ==========
+            function escapeHtml(str) {
+                const div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            }
+
+            // ========== Markdown 简易渲染 ==========
+            function renderMarkdown(text) {
+                if (!text) return '';
+                let html = escapeHtml(text);
+                html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+                html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+                html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+                html = html.replace(/```([\s\S]*?)```/g, function (match, code) {
+                    return '<pre><code>' + code.trim() + '</code></pre>';
+                });
+                html = html.replace(/^\s*[•\-]\s+(.+)$/gm, '<li>$1</li>');
+                html = html.replace(/(<li>.*<\/li>\n?)+/g, function (match) {
+                    return '<ul>' + match + '</ul>';
+                });
+                html = html.replace(/^\s*\d+\.\s+(.+)$/gm, '<li>$1</li>');
+                html = html.replace(/(<li>.*<\/li>\n?)+/g, function (match) {
+                    if (match.indexOf('<ul>') === -1) {
+                        return '<ol>' + match + '</ol>';
+                    }
+                    return match;
+                });
+                html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+                html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+                html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+                html = html.replace(/\n/g, '<br>');
+                return html;
+            }
+
+            // ========== 更新模型状态徽标 ==========
+            function updateModelBadge() {
+                const badgeText = modelBadge.querySelector('span');
+                const badgeIcon = modelBadge.querySelector('[data-lucide]');
+                if (config.mockMode) {
+                    modelBadge.className = 'model-badge mock';
+                    badgeText.textContent = '模拟模式';
+                    if (badgeIcon) badgeIcon.setAttribute('data-lucide', 'zap');
+                } else if (backendConfig.configured) {
+                    modelBadge.className = 'model-badge';
+                    badgeText.textContent = backendConfig.model || 'AI 模式';
+                    if (badgeIcon) badgeIcon.setAttribute('data-lucide', 'brain');
+                } else {
+                    modelBadge.className = 'model-badge mock';
+                    badgeText.textContent = '未配置';
+                    if (badgeIcon) badgeIcon.setAttribute('data-lucide', 'alert-circle');
+                }
+                if (window.lucide) {
+                    lucide.createIcons({ attrs: { 'stroke-width': 2 } });
+                }
+            }
+
+            // ========== 检测后端 API 配置 ==========
+            async function checkBackendConfig() {
+                try {
+                    const resp = await fetch('/api/config', { signal: AbortSignal.timeout(3000) });
+                    if (resp.ok) {
+                        backendConfig = await resp.json();
+                        apiStatusEl.innerHTML = backendConfig.configured
+                            ? '<span style="color:var(--state-success);"><i data-lucide="check-circle" style="width:12px;height:12px;vertical-align:middle;margin-right:4px;"></i>后端 API 已配置</span>'
+                            : '<span style="color:var(--state-warning);"><i data-lucide="alert-triangle" style="width:12px;height:12px;vertical-align:middle;margin-right:4px;"></i>后端 API 未配置，请在服务端 .env 文件中设置</span>';
+                        if (backendConfig.configured) {
+                            modelInfoGroup.style.display = 'block';
+                            modelNameDisplay.textContent = backendConfig.model;
+                        }
+                    } else {
+                        throw new Error('HTTP ' + resp.status);
+                    }
+                } catch (e) {
+                    backendConfig.configured = false;
+                    apiStatusEl.innerHTML = '<span style="color:var(--state-error);"><i data-lucide="x-circle" style="width:12px;height:12px;vertical-align:middle;margin-right:4px;"></i>无法连接后端（' + escapeHtml(e.message) + '）</span>';
+                }
+                if (window.lucide) lucide.createIcons();
+                updateModelBadge();
+            }
+
+            // ========== 设置模态框控制 ==========
+            function openSettings() {
+                mockModeToggle.checked = config.mockMode;
+                streamToggle.checked = config.stream;
+                tempSlider.value = config.temperature;
+                tempValue.textContent = config.temperature;
+                systemPromptInput.value = config.systemPrompt;
+                checkBackendConfig();
+                settingsModal.classList.add('show');
+            }
+
+            function closeSettings() {
+                settingsModal.classList.remove('show');
+            }
+
+            function saveSettings() {
+                const newMockMode = mockModeToggle.checked;
+
+                if (!newMockMode && !backendConfig.configured) {
+                    if (!confirm('后端 API 未配置，关闭模拟模式后对话可能失败。确定继续？')) {
+                        return;
+                    }
+                }
+
+                config.mockMode = newMockMode;
+                config.stream = streamToggle.checked;
+                config.temperature = parseFloat(tempSlider.value);
+                config.systemPrompt = systemPromptInput.value.trim();
+
+                updateModelBadge();
+                closeSettings();
+            }
+
+            // ========== 构造对话消息数组 ==========
+            function buildMessagesArray(userText) {
+                const msgs = [];
+
+                if (config.systemPrompt) {
+                    msgs.push({ role: 'system', content: config.systemPrompt });
+                }
+
+                const recentMsgs = messages.slice(-20);
+                recentMsgs.forEach(function (msg) {
+                    if (typeof msg.content === 'string') {
+                        const apiRole = msg.role === 'ai' ? 'assistant' : msg.role;
+                        msgs.push({ role: apiRole, content: msg.content });
+                    }
+                });
+
+                msgs.push({ role: 'user', content: userText });
+                return msgs;
+            }
+
+            // ========== 调用后端 /api/chat（流式） ==========
+            async function callBackendStream(userText, onDelta, onDone, onError, onToolStart, onToolResult) {
+                const requestMessages = buildMessagesArray(userText);
+
+                try {
+                    abortController = new AbortController();
+
+                    const response = await fetch('/api/chat', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            messages: requestMessages,
+                            stream: true,
+                            temperature: config.temperature
+                        }),
+                        signal: abortController.signal
+                    });
+
+                    if (!response.ok) {
+                        let errorMsg = '请求失败';
+                        try {
+                            const errData = await response.json();
+                            errorMsg = errData.detail || errData.message || ('HTTP ' + response.status);
+                        } catch (e) {
+                            errorMsg = 'HTTP ' + response.status;
+                        }
+                        throw new Error(errorMsg);
+                    }
+
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder('utf-8');
+                    let fullText = '';
+                    let buffer = '';
+                    let hasToolCall = false;
+
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+
+                        buffer += decoder.decode(value, { stream: true });
+                        const lines = buffer.split('\n');
+                        buffer = lines.pop() || '';
+
+                        for (const line of lines) {
+                            const trimmed = line.trim();
+                            if (!trimmed || !trimmed.startsWith('data:')) continue;
+                            const dataStr = trimmed.substring(5).trim();
+                            if (dataStr === '[DONE]') break;
+
+                            try {
+                                const data = JSON.parse(dataStr);
+
+                                // 检测是否为自定义事件（工具调用）
+                                if (data.event === 'tool_call_start') {
+                                    hasToolCall = true;
+                                    onToolStart && onToolStart(data.tools);
+                                    continue;
+                                }
+                                if (data.event === 'tool_call_result') {
+                                    onToolResult && onToolResult(data.name, data.result);
+                                    continue;
+                                }
+                                if (data.event === 'thinking') {
+                                    // 思考中，继续下一轮
+                                    continue;
+                                }
+                                if (data.error) {
+                                    throw new Error(data.error);
+                                }
+
+                                // 普通文本 delta
+                                const delta = data.choices && data.choices[0] && data.choices[0].delta;
+                                if (delta && delta.content) {
+                                    fullText += delta.content;
+                                    onDelta && onDelta(fullText);
+                                }
+                            } catch (e) {
+                                if (e.message && e.message !== '') {
+                                    // 非解析错误，抛出
+                                    if (!(e instanceof SyntaxError)) {
+                                        throw e;
+                                    }
+                                }
+                                // 忽略 JSON 解析错误
+                            }
+                        }
+                    }
+
+                    onDone && onDone(fullText, hasToolCall);
+
+                } catch (err) {
+                    if (err.name === 'AbortError') {
+                        onError && onError('请求已取消');
+                    } else {
+                        onError && onError(err.message || '网络错误');
+                    }
+                } finally {
+                    abortController = null;
+                }
+            }
+
+            // ========== 调用后端 /api/chat（非流式） ==========
+            async function callBackendNonStream(userText, onDone, onError) {
+                const requestMessages = buildMessagesArray(userText);
+
+                try {
+                    abortController = new AbortController();
+
+                    const response = await fetch('/api/chat', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            messages: requestMessages,
+                            stream: false,
+                            temperature: config.temperature
+                        }),
+                        signal: abortController.signal
+                    });
+
+                    if (!response.ok) {
+                        let errorMsg = '请求失败';
+                        try {
+                            const errData = await response.json();
+                            errorMsg = errData.detail || errData.message || ('HTTP ' + response.status);
+                        } catch (e) {
+                            errorMsg = 'HTTP ' + response.status;
+                        }
+                        throw new Error(errorMsg);
+                    }
+
+                    const data = await response.json();
+                    const content = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+                    onDone && onDone(content || '');
+
+                } catch (err) {
+                    if (err.name === 'AbortError') {
+                        onError && onError('请求已取消');
+                    } else {
+                        onError && onError(err.message || '网络错误');
+                    }
+                } finally {
+                    abortController = null;
+                }
+            }
+
+            // ========== 模拟 AI 回复数据库 ==========
+            const mockResponses = {
+                '混凝土': {
+                    type: 'calc',
+                    response: '根据计算：',
+                    formula: 'V = L × B × H',
+                    params: '6m × 0.3m × 0.6m',
+                    result: '1.08 m³',
+                    note: '注：实际用量需考虑损耗率，通常 C30 混凝土损耗率为 1.5%。'
+                },
+                '清单': {
+                    type: 'list',
+                    response: '以下是土建工程常见分部分项工程量清单示例：',
+                    items: [
+                        { code: '010101001001', name: '平整场地', unit: 'm²', qty: '1,250.00' },
+                        { code: '010101002001', name: '挖一般土方', unit: 'm³', qty: '3,680.00' },
+                        { code: '010103001001', name: '回填方', unit: 'm³', qty: '2,150.00' },
+                        { code: '010501001001', name: '现浇混凝土基础垫层', unit: 'm³', qty: '186.30' }
+                    ],
+                    note: '如需生成完整清单，请提供工程图纸或详细参数。'
+                },
+                '指标': {
+                    type: 'text',
+                    response: '根据最新造价指标数据，一线城市高层住宅单方造价参考如下：\n\n• 毛坯标准：2,800 - 3,200 元/m²\n• 精装修标准：3,500 - 4,500 元/m²\n• 豪华装修：5,000 - 6,800 元/m²\n\n以上价格包含土建、安装、装饰等全部工程费用，不含土地成本。具体项目需根据结构形式、装修标准、地区差异等因素调整。\n\n建议前往「造价指标」页面查看更详细的分类指标数据。'
+                },
+                '审核': {
+                    type: 'text',
+                    response: '造价报告智能审核主要从以下几个维度进行：\n\n1. **工程量复核**：对比同类工程指标，识别工程量异常项\n2. **定额套用检查**：检查定额子目套用是否准确，有无高套、错套\n3. **材料价格审核**：对比信息价，排查材料价格偏差\n4. **取费标准核查**：验证各项费率计取是否符合规定\n5. **风险项识别**：智能标记可能存在的造价风险点\n\n你可以在「审核分析」页面上传造价文件，系统将自动进行全面审核并生成报告。'
+                },
+                'default': {
+                    type: 'text',
+                    response: '我理解你的问题了。作为造价智能助手，我可以帮你：\n\n• 计算各类工程量（混凝土、钢筋、土方等）\n• 生成和分析工程量清单\n• 查询各类工程造价指标\n• 进行造价审核与风险分析\n\n请描述你的具体需求，例如：\n- "计算一根8米长的梁，截面250×500的混凝土量"\n- "查询办公楼的单方造价指标"\n- "帮我审核这份预算是否合理"'
+                }
+            };
+
+            function getMockResponse(question) {
+                const q = question.toLowerCase();
+                // 审核相关：优先匹配，避免被"造价"关键词干扰
+                if (q.includes('审核') || q.includes('风险') || (q.includes('报告') && !q.includes('造价指标'))) {
+                    return mockResponses['审核'];
+                }
+                if (q.includes('混凝土') || q.includes('用量') || q.includes('梁')) {
+                    return mockResponses['混凝土'];
+                }
+                if (q.includes('清单') || q.includes('工程量')) {
+                    return mockResponses['清单'];
+                }
+                if (q.includes('指标') || q.includes('造价') || q.includes('住宅')) {
+                    return mockResponses['指标'];
+                }
+                return mockResponses['default'];
+            }
+
+            // ========== 渲染消息 ==========
+            function renderMessage(msg, elementRef) {
+                if (elementRef) {
+                    const bubble = elementRef.querySelector('.message-bubble');
+                    if (bubble) {
+                        bubble.innerHTML = renderMarkdown(msg.content);
+                    }
+                    scrollToBottom();
+                    return elementRef;
+                }
+
+                const isUser = msg.role === 'user';
+                const div = document.createElement('div');
+                div.className = 'message ' + (isUser ? 'user' : 'ai');
+
+                const avatarHtml = isUser
+                    ? '<div class="message-avatar user"><i data-lucide="user"></i></div>'
+                    : '<div class="message-avatar ai"><i data-lucide="bot"></i></div>';
+
+                let contentHtml = '';
+                if (msg.typing) {
+                    contentHtml = '<div class="typing-indicator"><span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span></div>';
+                } else if (typeof msg.content === 'string') {
+                    contentHtml = renderMarkdown(msg.content);
+                } else {
+                    contentHtml = formatMockMessage(msg.content);
+                }
+
+                const timeHtml = !msg.typing
+                    ? '<div class="message-time">' + msg.time + '</div>'
+                    : '';
+
+                if (isUser) {
+                    div.innerHTML = `
+                        <div class="message-bubble-wrapper">
+                            <div class="message-bubble">${contentHtml}</div>
+                            ${timeHtml}
+                        </div>
+                        ${avatarHtml}
+                    `;
+                } else {
+                    div.innerHTML = `
+                        ${avatarHtml}
+                        <div class="message-bubble-wrapper">
+                            <div class="message-bubble">${contentHtml}</div>
+                            ${timeHtml}
+                        </div>
+                    `;
+                }
+
+                if (msg.isError) {
+                    const bubble = div.querySelector('.message-bubble');
+                    if (bubble) {
+                        bubble.style.backgroundColor = 'var(--state-error-bg)';
+                        bubble.style.color = 'var(--state-error)';
+                    }
+                }
+
+                messagesList.appendChild(div);
+
+                if (window.lucide) {
+                    lucide.createIcons({ attrs: { 'stroke-width': 2 } });
+                }
+
+                scrollToBottom();
+                return div;
+            }
+
+            // 格式化模拟回复
+            function formatMockMessage(data) {
+                let html = '<p>' + renderMarkdown(data.response).replace(/^<p>|<\/p>$/g, '') + '</p>';
+
+                if (data.type === 'calc') {
+                    html += `
+                        <div class="result-box">
+                            <p><strong>计算公式：</strong>${escapeHtml(data.formula)}</p>
+                            <p><strong>参数：</strong>${escapeHtml(data.params)}</p>
+                            <p><strong>混凝土用量：</strong><span class="result-highlight">${escapeHtml(data.result)}</span></p>
+                        </div>
+                    `;
+                }
+
+                if (data.type === 'list') {
+                    html += '<div class="result-box"><table style="width:100%;font-size:12px;">';
+                    html += '<thead><tr style="color:var(--color-text-tertiary);"><th style="text-align:left;padding:4px;">编号</th><th style="text-align:left;padding:4px;">名称</th><th style="text-align:center;padding:4px;">单位</th><th style="text-align:right;padding:4px;">工程量</th></tr></thead>';
+                    html += '<tbody>';
+                    data.items.forEach(function (item) {
+                        html += '<tr style="border-top:1px solid var(--color-border-light);">';
+                        html += '<td style="padding:4px;color:var(--color-text-tertiary);">' + escapeHtml(item.code) + '</td>';
+                        html += '<td style="padding:4px;">' + escapeHtml(item.name) + '</td>';
+                        html += '<td style="padding:4px;text-align:center;">' + escapeHtml(item.unit) + '</td>';
+                        html += '<td style="padding:4px;text-align:right;">' + escapeHtml(item.qty) + '</td>';
+                        html += '</tr>';
+                    });
+                    html += '</tbody></table></div>';
+                }
+
+                if (data.note) {
+                    html += '<p style="font-size:13px;color:var(--color-text-secondary);margin-top:8px;">' + escapeHtml(data.note) + '</p>';
+                }
+
+                return html;
+            }
+
+            // 滚动到底部
+            function scrollToBottom() {
+                const wrapper = document.querySelector('.chat-messages-wrapper');
+                if (wrapper) {
+                    wrapper.scrollTop = wrapper.scrollHeight;
+                }
+            }
+
+            // ========== 发送消息 ==========
+            function sendMessage(text) {
+                if (!text.trim() || isTyping) return;
+
+                welcomeScreen.classList.add('hidden');
+                messagesList.classList.remove('hidden');
+
+                const userMsg = {
+                    role: 'user',
+                    content: text,
+                    time: CostApp.Utils.getCurrentTime()
+                };
+                messages.push(userMsg);
+                renderMessage(userMsg);
+
+                chatInput.value = '';
+                chatInput.style.height = 'auto';
+                updateSendButton();
+
+                isTyping = true;
+
+                // 模拟模式
+                if (config.mockMode) {
+                    const typingMsg = { role: 'ai', typing: true };
+                    renderMessage(typingMsg);
+
+                    setTimeout(function () {
+                        const lastMsg = messagesList.lastElementChild;
+                        if (lastMsg) lastMsg.remove();
+
+                        const response = getMockResponse(text);
+                        const aiMsg = {
+                            role: 'ai',
+                            content: response,
+                            time: CostApp.Utils.getCurrentTime()
+                        };
+                        messages.push(aiMsg);
+                        renderMessage(aiMsg);
+                        isTyping = false;
+                    }, 1000 + Math.random() * 1000);
+                    return;
+                }
+
+                // 真实 API 模式
+                const typingMsg = { role: 'ai', typing: true };
+                const aiMsgElement = renderMessage(typingMsg);
+
+                // 工具调用状态容器
+                let toolStatusContainer = null;
+
+                const onDelta = function (text) {
+                    if (aiMsgElement) {
+                        const bubble = aiMsgElement.querySelector('.message-bubble');
+                        if (bubble) {
+                            bubble.innerHTML = renderMarkdown(text);
+                            scrollToBottom();
+                        }
+                    }
+                };
+
+                const onToolStart = function (tools) {
+                    // 移除 typing 指示器
+                    const bubble = aiMsgElement && aiMsgElement.querySelector('.message-bubble');
+                    if (bubble) {
+                        // 清除 typing
+                        if (bubble.querySelector('.typing-indicator')) {
+                            bubble.innerHTML = '';
+                        }
+                        // 先加一个简短的思考提示
+                        bubble.innerHTML = '<span style="color:var(--color-text-tertiary);font-size:13px;">正在查询数据...</span>';
+                    }
+
+                    // 创建工具调用状态区域
+                    toolStatusContainer = document.createElement('div');
+                    toolStatusContainer.className = 'tool-call-status';
+
+                    tools.forEach(function (tool, idx) {
+                        const item = document.createElement('div');
+                        item.className = 'tool-call-item';
+                        item.id = 'tool-item-' + idx;
+                        item.innerHTML = `
+                            <div class="tool-call-icon loading">
+                                <i data-lucide="loader"></i>
+                            </div>
+                            <div style="flex:1;min-width:0;">
+                                <div class="tool-call-name">${escapeHtml(getToolDisplayName(tool.name))}</div>
+                                <div class="tool-call-args">${escapeHtml(formatToolArgs(tool.arguments))}</div>
+                            </div>
+                        `;
+                        toolStatusContainer.appendChild(item);
+                    });
+
+                    const wrapper = aiMsgElement && aiMsgElement.querySelector('.message-bubble-wrapper');
+                    if (wrapper) {
+                        wrapper.appendChild(toolStatusContainer);
+                    }
+                    if (window.lucide) lucide.createIcons();
+                    scrollToBottom();
+                };
+
+                const onToolResult = function (name, result) {
+                    if (!toolStatusContainer) return;
+
+                    // 更新对应工具的状态为完成
+                    const items = toolStatusContainer.querySelectorAll('.tool-call-item');
+                    for (let i = 0; i < items.length; i++) {
+                        const nameEl = items[i].querySelector('.tool-call-name');
+                        if (nameEl && nameEl.textContent === getToolDisplayName(name)) {
+                            const iconEl = items[i].querySelector('.tool-call-icon');
+                            if (iconEl) {
+                                iconEl.classList.remove('loading');
+                                iconEl.classList.add('success');
+                                iconEl.innerHTML = '<i data-lucide="check"></i>';
+                            }
+                            // 添加结果摘要
+                            const resultDiv = document.createElement('div');
+                            resultDiv.className = 'tool-call-result';
+                            resultDiv.textContent = formatToolResultSummary(result);
+                            items[i].appendChild(resultDiv);
+                            break;
+                        }
+                    }
+                    if (window.lucide) lucide.createIcons();
+                    scrollToBottom();
+                };
+
+                const onDone = function (text, hadToolCall) {
+                    // 如果有工具调用且文本为空，确保显示内容
+                    const bubble = aiMsgElement && aiMsgElement.querySelector('.message-bubble');
+                    if (bubble && text.trim()) {
+                        bubble.innerHTML = renderMarkdown(text);
+                    } else if (bubble && !text.trim() && hadToolCall) {
+                        // 只有工具调用没有最终文本的情况
+                        bubble.innerHTML = '<span style="color:var(--color-text-secondary);">已完成数据查询</span>';
+                    }
+
+                    const wrapper = aiMsgElement && aiMsgElement.querySelector('.message-bubble-wrapper');
+                    if (wrapper) {
+                        const timeDiv = document.createElement('div');
+                        timeDiv.className = 'message-time';
+                        timeDiv.textContent = CostApp.Utils.getCurrentTime();
+                        wrapper.appendChild(timeDiv);
+                    }
+
+                    const aiMsg = {
+                        role: 'ai',
+                        content: text,
+                        time: CostApp.Utils.getCurrentTime()
+                    };
+                    messages.push(aiMsg);
+                    isTyping = false;
+                };
+
+                const onError = function (errText) {
+                    const lastMsg = messagesList.lastElementChild;
+                    if (lastMsg) lastMsg.remove();
+
+                    const errorMsg = {
+                        role: 'ai',
+                        content: '⚠️ ' + errText + '\n\n请检查后端服务和 .env 配置是否正确，或切换到模拟模式。',
+                        time: CostApp.Utils.getCurrentTime(),
+                        isError: true
+                    };
+                    messages.push(errorMsg);
+                    renderMessage(errorMsg);
+                    isTyping = false;
+                };
+
+                if (config.stream) {
+                    callBackendStream(text, onDelta, onDone, onError, onToolStart, onToolResult);
+                } else {
+                    callBackendNonStream(text, function (text) {
+                        const lastMsg = messagesList.lastElementChild;
+                        if (lastMsg) lastMsg.remove();
+                        const aiMsg = {
+                            role: 'ai',
+                            content: text,
+                            time: CostApp.Utils.getCurrentTime()
+                        };
+                        messages.push(aiMsg);
+                        renderMessage(aiMsg);
+                        isTyping = false;
+                    }, onError);
+                }
+            }
+
+            // 工具名称显示映射
+            function getToolDisplayName(name) {
+                const map = {
+                    'query_pipeline_indicator': '管线迁改指标查询',
+                    'query_cost_index': '造价指标查询'
+                };
+                return map[name] || name;
+            }
+
+            // 工具参数格式化显示
+            function formatToolArgs(argsStr) {
+                try {
+                    const args = JSON.parse(argsStr);
+                    const parts = [];
+                    for (const key in args) {
+                        if (args[key]) {
+                            parts.push(key + ': ' + args[key]);
+                        }
+                    }
+                    return parts.join(', ');
+                } catch (e) {
+                    return argsStr;
+                }
+            }
+
+            // 工具结果摘要
+            function formatToolResultSummary(result) {
+                if (typeof result === 'object') {
+                    if (result.total_matches !== undefined) {
+                        return '找到 ' + result.total_matches + ' 条相关记录';
+                    }
+                    if (result.total_categories !== undefined) {
+                        return result.total_categories + ' 个分类';
+                    }
+                    if (result.row_count !== undefined) {
+                        return result.row_count + ' 行数据';
+                    }
+                    if (result.type) {
+                        return result.type;
+                    }
+                    if (result.error) {
+                        return result.error;
+                    }
+                    return '查询完成';
+                }
+                return '查询完成';
+            }
+
+            // ========== 输入框自适应高度 ==========
+            function autoResize() {
+                chatInput.style.height = 'auto';
+                chatInput.style.height = Math.min(chatInput.scrollHeight, 120) + 'px';
+            }
+
+            function updateSendButton() {
+                sendBtn.disabled = chatInput.value.trim() === '';
+            }
+
+            // ========== 新建会话 ==========
+            function newChat() {
+                if (abortController) {
+                    abortController.abort();
+                    abortController = null;
+                }
+
+                messages = [];
+                messagesList.innerHTML = '';
+                messagesList.classList.add('hidden');
+                welcomeScreen.classList.remove('hidden');
+                chatInput.value = '';
+                chatInput.style.height = 'auto';
+                updateSendButton();
+                isTyping = false;
+            }
+
+            // ========== 历史会话加载 ==========
+            function loadHistory(title) {
+                newChat();
+                welcomeScreen.classList.add('hidden');
+                messagesList.classList.remove('hidden');
+
+                const mockHistory = [
+                    { role: 'user', content: '帮我分析一下' + title + '的相关内容', time: '09:20' },
+                    { role: 'ai', content: '好的，我来帮你分析「' + title + '」相关内容。\n\n根据历史记录，这是之前的分析结果。如果你有新的数据或问题，请随时告诉我，我可以进行更深入的分析。', time: '09:21' }
+                ];
+
+                messages = mockHistory;
+                mockHistory.forEach(function (msg) {
+                    renderMessage(msg);
+                });
+            }
+
+            // ========== 事件绑定 ==========
+            sendBtn.addEventListener('click', function () {
+                sendMessage(chatInput.value);
+            });
+
+            chatInput.addEventListener('input', function () {
+                autoResize();
+                updateSendButton();
+            });
+
+            chatInput.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage(chatInput.value);
+                }
+            });
+
+            quickQuestions.forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    const question = btn.getAttribute('data-question');
+                    sendMessage(question);
+                });
+            });
+
+            newChatBtn.addEventListener('click', newChat);
+
+            historyItems.forEach(function (item) {
+                item.addEventListener('click', function () {
+                    const title = item.getAttribute('data-title');
+                    loadHistory(title);
+                    if (CostApp.Utils.isMobile()) {
+                        CostApp.Sidebar.closeMobile();
+                    }
+                });
+            });
+
+            settingsBtn.addEventListener('click', openSettings);
+            modalCloseBtn.addEventListener('click', closeSettings);
+            modalCancelBtn.addEventListener('click', closeSettings);
+            modalSaveBtn.addEventListener('click', saveSettings);
+
+            settingsModal.addEventListener('click', function (e) {
+                if (e.target === settingsModal) {
+                    closeSettings();
+                }
+            });
+
+            tempSlider.addEventListener('input', function () {
+                tempValue.textContent = tempSlider.value;
+            });
+
+            // 初始化
+            updateModelBadge();
+            checkBackendConfig();
+        })();
+
+        </script>
+</body>
+</html>

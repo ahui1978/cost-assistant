@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>管线迁改指标 - 造价智能助手</title>
+    <link rel="stylesheet" href="assets/css/common.css">
+    <script src="https://unpkg.com/lucide@1.8.0/dist/umd/lucide.min.js"></script>
+    <style>
+        /* 管线迁改指标页面专属样式 */
+        .pipeline-page {
+            flex: 1;
+            overflow-y: auto;
+            background-color: var(--color-bg-tertiary);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 顶部栏 */
+        .pipeline-header {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            background-color: var(--color-bg);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .pipeline-header-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 24px;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .pipeline-title-section {
+            min-width: 0;
+        }
+
+        .pipeline-title {
+            font-size: var(--font-size-xl);
+            font-weight: var(--font-weight-bold);
+            color: var(--color-text-primary);
+        }
+
+        .pipeline-subtitle {
+            font-size: var(--font-size-sm);
+            color: var(--color-text-tertiary);
+            margin-top: 2px;
+        }
+
+        .pipeline-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+
+        .search-input-wrapper {
+            position: relative;
+        }
+
+        .search-input-wrapper [data-icon] {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 16px;
+            height: 16px;
+            color: var(--color-text-tertiary);
+            pointer-events: none;
+        }
+
+        .pipeline-search {
+            height: 36px;
+            padding: 0 12px 0 34px;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            background-color: var(--color-bg-tertiary);
+            color: var(--color-text-primary);
+            font-size: var(--font-size-sm);
+            width: 220px;
+            outline: none;
+            transition: border-color var(--transition-fast);
+        }
+
+        .pipeline-search:focus {
+            border-color: var(--color-primary);
+            background-color: var(--color-bg);
+        }
+
+        /* Tab 栏 */
+        .tab-bar {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 0 24px;
+            overflow-x: auto;
+            no-scrollbar: '';
+        }
+
+        .tab-bar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .tab-bar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        .tab-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 16px;
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-medium);
+            color: var(--color-text-secondary);
+            white-space: nowrap;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all var(--transition-fast);
+            flex-shrink: 0;
+        }
+
+        .tab-item [data-icon] {
+            width: 16px;
+            height: 16px;
+        }
+
+        .tab-item:hover {
+            color: var(--color-text-primary);
+        }
+
+        .tab-item.active {
+            color: var(--color-primary);
+            border-bottom-color: var(--color-primary);
+        }
+
+        /* 内容区 */
+        .pipeline-content {
+            padding: 20px 24px;
+            flex: 1;
+        }
+
+        .tab-panel {
+            display: none;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .tab-panel.active {
+            display: block;
+        }
+
+        /* 总说明卡片 */
+        .intro-card {
+            background-color: var(--color-surface);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            padding: 24px;
+            margin-bottom: 16px;
+        }
+
+        .intro-card-title {
+            font-size: var(--font-size-md);
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-text-primary);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .intro-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .intro-item {
+            display: flex;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: var(--radius-lg);
+            background-color: var(--color-bg-secondary);
+        }
+
+        .intro-item-label {
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-text-primary);
+            min-width: 100px;
+            flex-shrink: 0;
+        }
+
+        .intro-item-value {
+            font-size: var(--font-size-sm);
+            color: var(--color-text-secondary);
+            line-height: 1.6;
+        }
+
+        /* 指标表格容器 */
+        .indicator-section {
+            margin-bottom: 20px;
+        }
+
+        .indicator-card {
+            background-color: var(--color-surface);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            overflow: hidden;
+            margin-bottom: 16px;
+        }
+
+        .indicator-card-header {
+            padding: 14px 20px;
+            background-color: var(--color-primary-lighter);
+            border-bottom: 1px solid var(--color-border-light);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .indicator-category-title {
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-primary);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .indicator-category-title [data-icon] {
+            width: 14px;
+            height: 14px;
+        }
+
+        .indicator-count {
+            font-size: var(--font-size-xs);
+            color: var(--color-text-tertiary);
+        }
+
+        /* 列表型表格 */
+        .indicator-table-wrapper {
+            overflow-x: auto;
+        }
+
+        .indicator-table {
+            width: 100%;
+            font-size: var(--font-size-xs);
+        }
+
+        .indicator-table thead tr {
+            background-color: var(--color-bg-secondary);
+        }
+
+        .indicator-table th {
+            padding: 10px 16px;
+            text-align: left;
+            font-weight: var(--font-weight-medium);
+            color: var(--color-text-secondary);
+            white-space: nowrap;
+            font-size: var(--font-size-xs);
+        }
+
+        .indicator-table th.text-center { text-align: center; }
+        .indicator-table th.text-right { text-align: right; }
+
+        .indicator-table td {
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--color-border-light);
+            color: var(--color-text-primary);
+            font-size: var(--font-size-xs);
+        }
+
+        .indicator-table td.text-center { text-align: center; }
+        .indicator-table td.text-right { text-align: right; }
+
+        .indicator-table tbody tr:hover {
+            background-color: var(--color-bg-secondary);
+        }
+
+        .indicator-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .col-seq { width: 50px; color: var(--color-text-tertiary); text-align: center; }
+        .col-name { min-width: 180px; }
+        .col-unit { width: 100px; text-align: center; color: var(--color-text-secondary); white-space: nowrap; }
+        .col-price { width: 120px; text-align: right; font-weight: var(--font-weight-semibold); color: var(--color-primary); white-space: nowrap; }
+        .col-note { color: var(--color-text-tertiary); }
+
+        /* 矩阵型表格 */
+        .matrix-table-wrapper {
+            overflow-x: auto;
+        }
+
+        .matrix-table {
+            width: 100%;
+            font-size: var(--font-size-xs);
+            min-width: 800px;
+        }
+
+        .matrix-table thead tr {
+            background-color: var(--color-bg-secondary);
+        }
+
+        .matrix-table th {
+            padding: 10px 8px;
+            text-align: center;
+            font-weight: var(--font-weight-medium);
+            color: var(--color-text-secondary);
+            white-space: nowrap;
+            font-size: 11px;
+            position: sticky;
+            top: 0;
+        }
+
+        .matrix-table th:first-child {
+            text-align: left;
+            position: sticky;
+            left: 0;
+            z-index: 2;
+            background-color: var(--color-bg-secondary);
+            min-width: 120px;
+        }
+
+        .matrix-table thead th:first-child {
+            z-index: 3;
+        }
+
+        .matrix-table td {
+            padding: 8px;
+            text-align: center;
+            border-bottom: 1px solid var(--color-border-light);
+            border-right: 1px solid var(--color-border-light);
+            color: var(--color-text-primary);
+            font-size: 11px;
+            white-space: nowrap;
+        }
+
+        .matrix-table td:first-child {
+            text-align: left;
+            font-weight: var(--font-weight-medium);
+            color: var(--color-text-primary);
+            position: sticky;
+            left: 0;
+            z-index: 1;
+            background-color: var(--color-surface);
+            white-space: nowrap;
+        }
+
+        .matrix-table tbody tr:hover td:first-child {
+            background-color: var(--color-bg-secondary);
+        }
+
+        .matrix-table .price-cell {
+            color: var(--color-primary);
+            font-weight: var(--font-weight-medium);
+        }
+
+        .matrix-table .price-empty {
+            color: var(--color-text-tertiary);
+            opacity: 0.3;
+        }
+
+        /* 空状态 */
+        .empty-result {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--color-text-tertiary);
+        }
+
+        .empty-result [data-icon] {
+            width: 48px;
+            height: 48px;
+            margin-bottom: 12px;
+        }
+
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .pipeline-header-top {
+                padding: 12px 16px;
+            }
+
+            .pipeline-title {
+                font-size: var(--font-size-lg);
+            }
+
+            .pipeline-actions {
+                width: 100%;
+            }
+
+            .pipeline-search {
+                flex: 1;
+                width: auto;
+            }
+
+            .tab-bar {
+                padding: 0 16px;
+            }
+
+            .tab-item {
+                padding: 10px 12px;
+                font-size: var(--font-size-xs);
+            }
+
+            .pipeline-content {
+                padding: 16px;
+            }
+
+            .indicator-table th,
+            .indicator-table td {
+                padding: 8px 12px;
+            }
+
+            .intro-item {
+                flex-direction: column;
+                gap: 4px;
+            }
+
+            .intro-item-label {
+                min-width: 0;
+            }
+        }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden">
+    <!-- 侧边栏遮罩（移动端） -->
+    <div class="sidebar-overlay"></div>
+
+    <!-- 左侧导航栏 -->
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <div class="sidebar-logo-icon">
+                <i data-lucide="bot"></i>
+            </div>
+            <span>造价智能助手</span>
+        </div>
+
+        <div class="sidebar-divider"></div>
+
+        <nav class="sidebar-nav">
+            <a href="chat.html" class="nav-item" data-dom-id="nav-chat">
+                <i data-lucide="message-square"></i>
+                <span class="nav-text">智能对话</span>
+            </a>
+            <a href="boq.html" class="nav-item" data-dom-id="nav-boq">
+                <i data-lucide="file-spreadsheet"></i>
+                <span class="nav-text">工程量清单</span>
+            </a>
+            <a href="audit.html" class="nav-item" data-dom-id="nav-audit">
+                <i data-lucide="shield-check"></i>
+                <span class="nav-text">审核分析</span>
+            </a>
+            <a href="dashboard.html" class="nav-item" data-dom-id="nav-dashboard">
+                <i data-lucide="bar-chart-3"></i>
+                <span class="nav-text">造价指标</span>
+            </a>
+            <a href="pipeline.html" class="nav-item" data-dom-id="nav-pipeline">
+                <i data-lucide="git-branch"></i>
+                <span class="nav-text">管线迁改指标</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-user">
+            <div class="user-profile">
+                <div class="user-avatar">张</div>
+                <div class="user-info">
+                    <div class="user-name">张工</div>
+                    <div class="user-role">专业版</div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- 主内容区 -->
+    <main class="main-content flex flex-col h-screen">
+        <div class="pipeline-page">
+            <!-- 顶部栏 -->
+            <div class="pipeline-header">
+                <div class="pipeline-header-top">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <button class="sidebar-toggle" id="sidebar-toggle">
+                            <i data-lucide="menu"></i>
+                        </button>
+                        <div class="pipeline-title-section">
+                            <h1 class="pipeline-title">管线迁改工程预算限额指标</h1>
+                            <p class="pipeline-subtitle">基于广州、雄安、天津、乌海四地资料编制 · 2026年6月</p>
+                        </div>
+                    </div>
+                    <div class="pipeline-actions">
+                        <div class="search-input-wrapper">
+                            <i data-lucide="search"></i>
+                            <input type="text" class="pipeline-search" id="pipeline-search" placeholder="搜索指标项...">
+                        </div>
+                        <button class="btn btn-secondary" id="export-btn">
+                            <i data-lucide="download"></i>
+                            <span>导出</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tab 栏 -->
+                <div class="tab-bar" id="tab-bar">
+                    <div class="tab-item active" data-tab="intro">
+                        <i data-lucide="book-open"></i>
+                        <span>总说明</span>
+                    </div>
+                    <div class="tab-item" data-tab="electric">
+                        <i data-lucide="zap"></i>
+                        <span>电力迁改</span>
+                    </div>
+                    <div class="tab-item" data-tab="communication">
+                        <i data-lucide="signal"></i>
+                        <span>通信迁改</span>
+                    </div>
+                    <div class="tab-item" data-tab="gas">
+                        <i data-lucide="flame"></i>
+                        <span>燃气迁改</span>
+                    </div>
+                    <div class="tab-item" data-tab="water">
+                        <i data-lucide="droplets"></i>
+                        <span>给水迁改</span>
+                    </div>
+                    <div class="tab-item" data-tab="drainage">
+                        <i data-lucide="waves"></i>
+                        <span>排水迁改</span>
+                    </div>
+                    <div class="tab-item" data-tab="thermal">
+                        <i data-lucide="thermometer"></i>
+                        <span>热力迁改</span>
+                    </div>
+                    <div class="tab-item" data-tab="general">
+                        <i data-lucide="wrench"></i>
+                        <span>通用工程</span>
+                    </div>
+                    <div class="tab-item" data-tab="conversion">
+                        <i data-lucide="replace"></i>
+                        <span>换算系数</span>
+                    </div>
+                    <div class="tab-item" data-tab="fee">
+                        <i data-lucide="receipt"></i>
+                        <span>取费标准</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 内容区 -->
+            <div class="pipeline-content" id="pipeline-content">
+                <!-- 由 JS 动态渲染 -->
+            </div>
+        </div>
+    </main>
+
+    <script src="assets/js/common.js"></script>
+    <script src="assets/js/pipeline-data.js"></script>
+    <script>
+        /* ============================================
+           管线迁改指标页面交互逻辑
+           ============================================ */
+        (function () {
+            'use strict';
+
+            var DATA = window.PIPELINE_DATA || {};
+            var currentTab = 'intro';
+            var searchKeyword = '';
+
+            // Tab 配置
+            var tabConfig = {
+                intro: { type: 'intro', label: '总说明' },
+                electric: { type: 'list', label: '电力迁改指标' },
+                communication: { type: 'list', label: '通信迁改指标' },
+                gas: { type: 'list', label: '燃气迁改指标' },
+                general: { type: 'list', label: '通用工程指标' },
+                water: { type: 'matrix', label: '给水迁改指标' },
+                drainage: { type: 'matrix', label: '排水迁改指标' },
+                thermal: { type: 'matrix', label: '热力迁改指标' },
+                conversion: { type: 'conversion', label: '换算系数' },
+                fee: { type: 'fee', label: '费用取费标准' }
+            };
+
+            // ========== 渲染：总说明 ==========
+            function renderIntro() {
+                var items = DATA.intro || [];
+                var html = '<div class="intro-card">';
+                html += '<div class="intro-card-title"><i data-lucide="book-open"></i> 指标编制说明</div>';
+                html += '<div class="intro-list">';
+                items.forEach(function (item) {
+                    html += '<div class="intro-item">';
+                    html += '<div class="intro-item-label">' + escapeHtml(item.name) + '</div>';
+                    html += '<div class="intro-item-value">' + escapeHtml(item.content) + '</div>';
+                    html += '</div>';
+                });
+                html += '</div></div>';
+
+                // 补充编制依据卡片
+                html += '<div class="intro-card">';
+                html += '<div class="intro-card-title"><i data-lucide="file-text"></i> 编制依据</div>';
+                html += '<div class="intro-list">';
+                var basis = [
+                    { name: '广州估概算指标', content: '广州市《管线迁改项目工程估概算指标（2023年）》——提供通信、电力、给水、排水、燃气、热力等专业的综合造价指标和分项造价指标' },
+                    { name: '雄安限额指标', content: '雄安新区《关于更新雄安新区管线迁改预算限额指标的通知（2026年度）》——提供最新的预算限额指标及动态调整机制' },
+                    { name: '天津地铁指导价', content: '天津地铁管线迁改指导价格——提供天津地区管线迁改的参考价格信息' },
+                    { name: '乌海造价信息', content: '乌海市常用管线迁改造价信息——提供乌海地区管线迁改的实际造价数据' }
+                ];
+                basis.forEach(function (item) {
+                    html += '<div class="intro-item">';
+                    html += '<div class="intro-item-label">' + escapeHtml(item.name) + '</div>';
+                    html += '<div class="intro-item-value">' + escapeHtml(item.content) + '</div>';
+                    html += '</div>';
+                });
+                html += '</div></div>';
+
+                return html;
+            }
+
+            // ========== 渲染：列表型表格（电力/通信/燃气/通用）==========
+            function renderListTable(key) {
+                var categories = DATA[key] || [];
+                if (categories.length === 0) {
+                    return renderEmpty();
+                }
+
+                var html = '';
+                var totalItems = 0;
+
+                categories.forEach(function (cat) {
+                    var items = cat.items || [];
+                    // 搜索过滤
+                    if (searchKeyword) {
+                        items = items.filter(function (item) {
+                            return (item.name && item.name.toLowerCase().indexOf(searchKeyword) !== -1) ||
+                                   (item.note && item.note.toLowerCase().indexOf(searchKeyword) !== -1);
+                        });
+                    }
+                    if (items.length === 0) return;
+
+                    totalItems += items.length;
+                    html += '<div class="indicator-card">';
+                    html += '<div class="indicator-card-header">';
+                    html += '<div class="indicator-category-title"><i data-lucide="folder"></i>' + escapeHtml(cat.category) + '</div>';
+                    html += '<span class="indicator-count">共 ' + items.length + ' 项</span>';
+                    html += '</div>';
+                    html += '<div class="indicator-table-wrapper">';
+                    html += '<table class="indicator-table">';
+                    html += '<thead><tr>';
+                    html += '<th class="col-seq">序号</th>';
+                    html += '<th class="col-name">工程名称</th>';
+                    html += '<th class="col-unit">单位</th>';
+                    html += '<th class="col-price" style="text-align:right;">单位造价</th>';
+                    html += '<th class="col-note">说明</th>';
+                    html += '</tr></thead><tbody>';
+                    items.forEach(function (item) {
+                        var priceStr = item.price !== '' ? formatPrice(item.price) : '--';
+                        var unitStr = item.unit !== '' ? escapeHtml(item.unit) : '--';
+                        var noteStr = item.note ? escapeHtml(item.note) : '';
+                        html += '<tr>';
+                        html += '<td class="col-seq">' + escapeHtml(String(item.seq)) + '</td>';
+                        html += '<td class="col-name">' + escapeHtml(item.name) + '</td>';
+                        html += '<td class="col-unit">' + unitStr + '</td>';
+                        html += '<td class="col-price">' + priceStr + '</td>';
+                        html += '<td class="col-note">' + noteStr + '</td>';
+                        html += '</tr>';
+                    });
+                    html += '</tbody></table></div></div>';
+                });
+
+                if (totalItems === 0 && searchKeyword) {
+                    return renderEmpty();
+                }
+
+                return html;
+            }
+
+            // ========== 渲染：矩阵型表格（给水/排水/热力）==========
+            function renderMatrixTable(key) {
+                var matrixData = DATA[key] || {};
+                var headers = matrixData.headers || [];
+                var rows = matrixData.data || [];
+
+                if (rows.length === 0) {
+                    return renderEmpty();
+                }
+
+                // 搜索过滤（按管径）
+                var filteredRows = rows;
+                if (searchKeyword) {
+                    filteredRows = rows.filter(function (row) {
+                        return row.diameter && row.diameter.toLowerCase().indexOf(searchKeyword) !== -1;
+                    });
+                }
+
+                if (filteredRows.length === 0) {
+                    return renderEmpty();
+                }
+
+                var html = '<div class="indicator-card">';
+                html += '<div class="indicator-card-header">';
+                html += '<div class="indicator-category-title"><i data-lucide="grid"></i>' + tabConfig[key].label + '（元/m）</div>';
+                html += '<span class="indicator-count">共 ' + filteredRows.length + ' 种管径</span>';
+                html += '</div>';
+                html += '<div class="matrix-table-wrapper">';
+                html += '<table class="matrix-table">';
+                html += '<thead><tr>';
+                headers.forEach(function (h) {
+                    if (h) {
+                        html += '<th>' + escapeHtml(h) + '</th>';
+                    }
+                });
+                html += '</tr></thead><tbody>';
+                filteredRows.forEach(function (row) {
+                    html += '<tr>';
+                    html += '<td>' + escapeHtml(row.diameter) + '</td>';
+                    headers.forEach(function (h, idx) {
+                        if (idx > 0 && h) {
+                            var val = row[h];
+                            if (val !== '' && val !== undefined && val !== null) {
+                                html += '<td class="price-cell">' + formatPrice(val) + '</td>';
+                            } else {
+                                html += '<td class="price-empty">—</td>';
+                            }
+                        }
+                    });
+                    html += '</tr>';
+                });
+                html += '</tbody></table></div></div>';
+
+                return html;
+            }
+
+            // ========== 渲染：换算系数 ==========
+            function renderConversion() {
+                var items = DATA.conversion || [];
+                if (items.length === 0) return renderEmpty();
+
+                var html = '<div class="indicator-card">';
+                html += '<div class="indicator-card-header">';
+                html += '<div class="indicator-category-title"><i data-lucide="replace"></i>换算系数表</div>';
+                html += '<span class="indicator-count">共 ' + items.length + ' 条</span>';
+                html += '</div>';
+                html += '<div class="indicator-table-wrapper">';
+                html += '<table class="indicator-table">';
+                html += '<thead><tr>';
+                html += '<th class="col-seq">序号</th>';
+                html += '<th style="min-width:200px;">调整场景</th>';
+                html += '<th style="width:120px;">适用专业</th>';
+                html += '<th style="min-width:200px;">换算规则</th>';
+                html += '<th class="col-note">备注</th>';
+                html += '</tr></thead><tbody>';
+                items.forEach(function (item) {
+                    html += '<tr>';
+                    html += '<td class="col-seq">' + escapeHtml(String(item.seq)) + '</td>';
+                    html += '<td>' + escapeHtml(item.scene) + '</td>';
+                    html += '<td class="col-unit">' + escapeHtml(item.profession) + '</td>';
+                    html += '<td>' + escapeHtml(item.rule) + '</td>';
+                    html += '<td class="col-note">' + escapeHtml(item.note || '') + '</td>';
+                    html += '</tr>';
+                });
+                html += '</tbody></table></div></div>';
+                return html;
+            }
+
+            // ========== 渲染：取费标准 ==========
+            function renderFee() {
+                var items = DATA.fee || [];
+                if (items.length === 0) return renderEmpty();
+
+                var html = '<div class="indicator-card">';
+                html += '<div class="indicator-card-header">';
+                html += '<div class="indicator-category-title"><i data-lucide="receipt"></i>费用取费标准</div>';
+                html += '<span class="indicator-count">共 ' + items.length + ' 条</span>';
+                html += '</div>';
+                html += '<div class="indicator-table-wrapper">';
+                html += '<table class="indicator-table">';
+                html += '<thead><tr>';
+                html += '<th class="col-seq">序号</th>';
+                html += '<th style="min-width:180px;">费用项目</th>';
+                html += '<th style="min-width:180px;">适用专业</th>';
+                html += '<th style="width:100px;text-align:right;">费率</th>';
+                html += '<th style="width:120px;">计算基数</th>';
+                html += '<th class="col-note">说明</th>';
+                html += '</tr></thead><tbody>';
+                items.forEach(function (item) {
+                    html += '<tr>';
+                    html += '<td class="col-seq">' + escapeHtml(String(item.seq)) + '</td>';
+                    html += '<td>' + escapeHtml(item.name) + '</td>';
+                    html += '<td class="col-unit">' + escapeHtml(item.profession) + '</td>';
+                    html += '<td class="col-price">' + escapeHtml(item.rate) + '</td>';
+                    html += '<td class="col-unit">' + escapeHtml(item.base) + '</td>';
+                    html += '<td class="col-note">' + escapeHtml(item.note || '') + '</td>';
+                    html += '</tr>';
+                });
+                html += '</tbody></table></div></div>';
+                return html;
+            }
+
+            // ========== 渲染空状态 ==========
+            function renderEmpty() {
+                return '<div class="empty-result"><i data-lucide="search-x"></i><p>未找到匹配的指标项</p></div>';
+            }
+
+            // ========== 格式化价格 ==========
+            function formatPrice(val) {
+                if (val === '' || val === null || val === undefined) return '--';
+                var num = Number(val);
+                if (isNaN(num)) return escapeHtml(String(val));
+                // 整数直接返回，小数保留2位
+                if (num === Math.floor(num)) {
+                    return num.toLocaleString('zh-CN');
+                }
+                return num.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            }
+
+            // ========== HTML 转义 ==========
+            function escapeHtml(str) {
+                if (str === null || str === undefined) return '';
+                return String(str)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#39;');
+            }
+
+            // ========== 渲染当前 Tab ==========
+            function renderCurrentTab() {
+                var content = document.getElementById('pipeline-content');
+                var config = tabConfig[currentTab];
+                if (!config) return;
+
+                var html = '';
+                switch (config.type) {
+                    case 'intro':
+                        html = renderIntro();
+                        break;
+                    case 'list':
+                        html = renderListTable(currentTab);
+                        break;
+                    case 'matrix':
+                        html = renderMatrixTable(currentTab);
+                        break;
+                    case 'conversion':
+                        html = renderConversion();
+                        break;
+                    case 'fee':
+                        html = renderFee();
+                        break;
+                }
+
+                content.innerHTML = html;
+
+                // 重新渲染图标
+                if (window.lucide) {
+                    lucide.createIcons({ attrs: { 'stroke-width': 2 } });
+                }
+            }
+
+            // ========== Tab 切换 ==========
+            var tabItems = document.querySelectorAll('.tab-item');
+            tabItems.forEach(function (tab) {
+                tab.addEventListener('click', function () {
+                    tabItems.forEach(function (t) { t.classList.remove('active'); });
+                    tab.classList.add('active');
+                    currentTab = tab.getAttribute('data-tab');
+                    // 切换Tab时清空搜索
+                    document.getElementById('pipeline-search').value = '';
+                    searchKeyword = '';
+                    renderCurrentTab();
+                });
+            });
+
+            // ========== 搜索 ==========
+            var searchInput = document.getElementById('pipeline-search');
+            if (searchInput) {
+                searchInput.addEventListener('input', CostApp.Utils.debounce(function () {
+                    searchKeyword = this.value.toLowerCase().trim();
+                    renderCurrentTab();
+                }, 200));
+            }
+
+            // ========== 侧边栏切换 ==========
+            var sidebarToggle = document.getElementById('sidebar-toggle');
+            if (sidebarToggle) {
+                sidebarToggle.addEventListener('click', function () {
+                    CostApp.Sidebar.toggle();
+                });
+            }
+
+            // ========== 导出按钮 ==========
+            var exportBtn = document.getElementById('export-btn');
+            if (exportBtn) {
+                exportBtn.addEventListener('click', function () {
+                    var originalHtml = exportBtn.innerHTML;
+                    exportBtn.innerHTML = '<i data-lucide="check"></i><span>已导出</span>';
+                    exportBtn.style.borderColor = 'var(--state-success)';
+                    exportBtn.style.color = 'var(--state-success)';
+                    if (window.lucide) lucide.createIcons({ attrs: { 'stroke-width': 2 } });
+                    setTimeout(function () {
+                        exportBtn.innerHTML = originalHtml;
+                        exportBtn.style.borderColor = '';
+                        exportBtn.style.color = '';
+                        if (window.lucide) lucide.createIcons({ attrs: { 'stroke-width': 2 } });
+                    }, 2000);
+                });
+            }
+
+            // ========== 初始化渲染 ==========
+            renderCurrentTab();
+        })();
+    </script>
+</body>
+</html>

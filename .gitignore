@@ -1,0 +1,29 @@
+# 环境变量（含 API Key，不提交）
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 临时脚本
+replace_script.py
+chat_new_script.js
+
+# 编译缓存
+*.pyc

@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>工程量清单 - 造价智能助手</title>
+    <link rel="stylesheet" href="assets/css/common.css">
+    <script src="https://unpkg.com/lucide@1.8.0/dist/umd/lucide.min.js"></script>
+    <style>
+        /* 工程量清单页面专属样式 */
+        .page-container {
+            padding: 32px;
+            display: flex;
+            gap: 24px;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* 左栏：项目列表 */
+        .project-list-section {
+            width: 30%;
+            min-width: 280px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            overflow-y: auto;
+        }
+
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-text-primary);
+        }
+
+        .section-title [data-icon] {
+            width: 16px;
+            height: 16px;
+            color: var(--color-text-tertiary);
+        }
+
+        /* 项目卡片 */
+        .project-card {
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--color-border);
+            background-color: var(--color-surface);
+            padding: 16px;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .project-card:hover {
+            border-color: var(--color-primary-light);
+            box-shadow: var(--shadow-md);
+        }
+
+        .project-card.active {
+            border-color: var(--color-primary);
+            background-color: var(--color-primary-light);
+            box-shadow: inset 0 0 0 1px var(--color-primary);
+        }
+
+        .project-card-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .project-card-info {
+            min-width: 0;
+            flex: 1;
+        }
+
+        .project-card-title {
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .project-card.active .project-card-title {
+            color: var(--color-primary);
+        }
+
+        .project-card-location {
+            font-size: var(--font-size-xs);
+            color: var(--color-text-secondary);
+            margin-top: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .project-card-footer {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            margin-top: 12px;
+        }
+
+        .project-card-price-label {
+            font-size: var(--font-size-xs);
+            color: var(--color-text-tertiary);
+        }
+
+        .project-card-price {
+            font-size: var(--font-size-lg);
+            font-weight: var(--font-weight-bold);
+            color: var(--color-text-primary);
+            white-space: nowrap;
+        }
+
+        .project-card-price-unit {
+            font-size: var(--font-size-xs);
+            font-weight: var(--font-weight-normal);
+            color: var(--color-text-tertiary);
+        }
+
+        .project-card-date {
+            font-size: var(--font-size-xs);
+            color: var(--color-text-tertiary);
+            white-space: nowrap;
+        }
+
+        /* 拖拽上传区域 */
+        .upload-section {
+            margin-top: 8px;
+        }
+
+        .upload-area {
+            border: 2px dashed var(--color-border);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            background-color: var(--color-bg-secondary);
+        }
+
+        .upload-area:hover,
+        .upload-area.dragover {
+            border-color: var(--color-primary);
+            background-color: var(--color-primary-light);
+        }
+
+        .upload-area [data-icon] {
+            width: 32px;
+            height: 32px;
+            margin: 0 auto 8px;
+            color: var(--color-text-tertiary);
+        }
+
+        .upload-area:hover [data-icon] {
+            color: var(--color-primary);
+        }
+
+        .upload-text {
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-medium);
+            color: var(--color-text-secondary);
+        }
+
+        .upload-hint {
+            font-size: var(--font-size-xs);
+            color: var(--color-text-tertiary);
+            margin-top: 4px;
+        }
+
+        /* 导入模式选择 */
+        .import-mode {
+            margin-top: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .import-mode label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: var(--font-size-sm);
+            color: var(--color-text-secondary);
+            cursor: pointer;
+        }
+
+        .import-mode input[type="radio"] {
+            accent-color: var(--color-primary);
+            width: 14px;
+            height: 14px;
+        }
+
+        /* 右栏：清单内容 */
+        .boq-content-section {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            overflow-y: auto;
+        }
+
+        /* KPI 卡片行 */
+        .kpi-row {
+            display: flex;
+            gap: 16px;
+            overflow-x: auto;
+            padding-bottom: 4px;
+        }
+
+        .kpi-row .kpi-card {
+            min-width: 180px;
+            flex: 1;
+        }
+
+        /* 清单表格 */
+        .boq-table-container {
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--color-border);
+            background-color: var(--color-surface);
+            overflow: hidden;
+        }
+
+        .boq-table-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--color-border-light);
+        }
+
+        .boq-table-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .boq-table-title h2 {
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-text-primary);
+        }
+
+        .boq-table-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .search-box {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--color-border);
+            font-size: var(--font-size-xs);
+            color: var(--color-text-secondary);
+        }
+
+        .search-box [data-icon] {
+            width: 14px;
+            height: 14px;
+        }
+
+        .btn-small {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--color-border);
+            font-size: var(--font-size-xs);
+            color: var(--color-text-secondary);
+            transition: all var(--transition-fast);
+            background-color: var(--color-surface);
+            white-space: nowrap;
+        }
+
+        .btn-small:hover {
+            border-color: var(--color-primary);
+            color: var(--color-primary);
+        }
+
+        .btn-small [data-icon] {
+            width: 14px;
+            height: 14px;
+        }
+
+        /* 表格 */
+        .boq-table-wrapper {
+            overflow-x: auto;
+        }
+
+        .boq-table {
+            width: 100%;
+            font-size: var(--font-size-sm);
+            table-layout: fixed;
+            min-width: 700px;
+        }
+
+        .boq-table thead tr {
+            background-color: var(--color-bg-secondary);
+            border-bottom: 1px solid var(--color-border-light);
+        }
+
+        .boq-table th {
+            padding: 10px 20px;
+            text-align: left;
+            font-size: var(--font-size-xs);
+            font-weight: var(--font-weight-medium);
+            color: var(--color-text-secondary);
+            white-space: nowrap;
+        }
+
+        .boq-table th.text-center { text-align: center; }
+        .boq-table th.text-right { text-align: right; }
+
+        .boq-table td {
+            padding: 10px 20px;
+            border-bottom: 1px solid var(--color-border-light);
+            color: var(--color-text-primary);
+        }
+
+        .boq-table td.text-center { text-align: center; }
+        .boq-table td.text-right { text-align: right; }
+
+        .boq-table .code-col {
+            width: 100px;
+            font-size: var(--font-size-xs);
+            color: var(--color-text-tertiary);
+            white-space: nowrap;
+        }
+
+        .boq-table .name-col {
+            width: auto;
+        }
+
+        .boq-table .unit-col {
+            width: 60px;
+            font-size: var(--font-size-xs);
+            color: var(--color-text-secondary);
+            white-space: nowrap;
+        }
+
+        .boq-table .qty-col {
+            width: 90px;
+            font-size: var(--font-size-xs);
+            white-space: nowrap;
+        }
+
+        .boq-table .price-col {
+            width: 100px;
+            font-size: var(--font-size-xs);
+            white-space: nowrap;
+        }
+
+        .boq-table .total-col {
+            width: 120px;
+            font-size: var(--font-size-xs);
+            white-space: nowrap;
+            font-weight: var(--font-weight-medium);
+        }
+
+        /* 分类行 */
+        .category-row {
+            background-color: var(--color-primary-lighter);
+        }
+
+        .category-row td {
+            font-size: var(--font-size-xs);
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-primary);
+            padding: 8px 20px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .category-row [data-icon] {
+            width: 14px;
+            height: 14px;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 4px;
+            transition: transform var(--transition-fast);
+        }
+
+        .category-row.collapsed [data-icon] {
+            transform: rotate(-90deg);
+        }
+
+        /* 合计行 */
+        .total-row {
+            background-color: var(--color-primary-lighter);
+            border-top: 2px solid var(--color-primary);
+        }
+
+        .total-row td {
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-primary);
+        }
+
+        /* 分页 */
+        .pagination {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 20px;
+            border-top: 1px solid var(--color-border-light);
+        }
+
+        .pagination-info {
+            font-size: var(--font-size-xs);
+            color: var(--color-text-tertiary);
+            white-space: nowrap;
+        }
+
+        .pagination-buttons {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .page-btn {
+            padding: 4px 10px;
+            border-radius: var(--radius-md);
+            font-size: var(--font-size-xs);
+            border: 1px solid var(--color-border);
+            color: var(--color-text-secondary);
+            transition: all var(--transition-fast);
+            background-color: var(--color-surface);
+            white-space: nowrap;
+        }
+
+        .page-btn:hover {
+            border-color: var(--color-primary);
+            color: var(--color-primary);
+        }
+
+        .page-btn.active {
+            background-color: var(--color-primary);
+            border-color: var(--color-primary);
+            color: var(--color-text-inverse);
+        }
+
+        .page-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* 响应式 */
+        @media (max-width: 1024px) {
+            .page-container {
+                flex-direction: column;
+                padding: 16px;
+                overflow-y: auto;
+            }
+
+            .project-list-section {
+                width: 100%;
+                min-width: 0;
+                flex-direction: row;
+                overflow-x: auto;
+                gap: 12px;
+            }
+
+            .project-card {
+                min-width: 240px;
+                flex-shrink: 0;
+            }
+
+            .upload-section {
+                display: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .page-container {
+                padding: 12px;
+                gap: 16px;
+            }
+
+            .kpi-row {
+                gap: 12px;
+            }
+
+            .kpi-row .kpi-card {
+                min-width: 160px;
+                padding: 16px;
+            }
+
+            .boq-table-header {
+                padding: 12px 16px;
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+
+            .boq-table th,
+            .boq-table td {
+                padding: 10px 16px;
+            }
+
+            .pagination {
+                padding: 12px 16px;
+                flex-direction: column;
+                gap: 8px;
+            }
+        }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden">
+    <!-- 侧边栏遮罩（移动端） -->
+    <div class="sidebar-overlay"></div>
+
+    <!-- 左侧导航栏 -->
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <div class="sidebar-logo-icon">
+                <i data-lucide="hard-hat"></i>
+            </div>
+            <span>造价智能助手</span>
+        </div>
+
+        <div class="sidebar-divider"></div>
+
+        <nav class="sidebar-nav">
+            <a href="chat.html" class="nav-item" data-dom-id="nav-chat">
+                <i data-lucide="message-square"></i>
+                <span class="nav-text">智能对话</span>
+            </a>
+            <a href="boq.html" class="nav-item" data-dom-id="nav-boq">
+                <i data-lucide="file-spreadsheet"></i>
+                <span class="nav-text">工程量清单</span>
+            </a>
+            <a href="audit.html" class="nav-item" data-dom-id="nav-audit">
+                <i data-lucide="shield-check"></i>
+                <span class="nav-text">审核分析</span>
+            </a>
+            <a href="dashboard.html" class="nav-item" data-dom-id="nav-dashboard">
+                <i data-lucide="bar-chart-3"></i>
+                <span class="nav-text">造价指标</span>
+            </a>
+            <a href="pipeline.html" class="nav-item" data-dom-id="nav-pipeline">
+                <i data-lucide="git-branch"></i>
+                <span class="nav-text">管线迁改指标</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-user">
+            <div class="user-profile">
+                <div class="user-avatar">张</div>
+                <div class="user-info">
+                    <div class="user-name">张工程师</div>
+                    <div class="user-role">专业版</div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- 主内容区 -->
+    <main class="main-content flex flex-col h-screen">
+        <!-- 顶部操作栏 -->
+        <header class="top-header">
+            <div class="flex items-center gap-3 min-w-0">
+                <button class="sidebar-toggle" id="sidebar-toggle">
+                    <i data-lucide="menu"></i>
+                </button>
+                <h1 class="page-title">工程量清单</h1>
+            </div>
+            <div class="header-actions">
+                <select class="select" id="project-select">
+                    <option value="1">城市花园住宅项目</option>
+                    <option value="2">高新产业园办公楼</option>
+                    <option value="3">市政道路改造工程</option>
+                </select>
+                <button class="btn btn-primary">
+                    <i data-lucide="plus"></i>
+                    <span>新建项目</span>
+                </button>
+                <button class="btn btn-secondary" id="import-btn">
+                    <i data-lucide="upload"></i>
+                    <span>导入 Excel</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- 主体两栏内容 -->
+        <div class="page-container">
+            <!-- 左栏：项目列表 -->
+            <section class="project-list-section">
+                <h2 class="section-title">
+                    <i data-lucide="folder-open"></i>
+                    项目列表
+                </h2>
+
+                <!-- 项目卡片 1（选中态） -->
+                <div class="project-card active" data-project-id="1">
+                    <div class="project-card-header">
+                        <div class="project-card-info">
+                            <h3 class="project-card-title">城市花园住宅项目</h3>
+                            <p class="project-card-location">浙江杭州</p>
+                        </div>
+                        <span class="tag tag-info">住宅</span>
+                    </div>
+                    <div class="project-card-footer">
+                        <div>
+                            <p class="project-card-price-label">总造价</p>
+                            <p class="project-card-price">2,856.32 <span class="project-card-price-unit">万元</span></p>
+                        </div>
+                        <span class="project-card-date">2024-12-15</span>
+                    </div>
+                </div>
+
+                <!-- 项目卡片 2 -->
+                <div class="project-card" data-project-id="2">
+                    <div class="project-card-header">
+                        <div class="project-card-info">
+                            <h3 class="project-card-title">高新产业园办公楼</h3>
+                            <p class="project-card-location">江苏南京</p>
+                        </div>
+                        <span class="tag tag-primary">公建</span>
+                    </div>
+                    <div class="project-card-footer">
+                        <div>
+                            <p class="project-card-price-label">总造价</p>
+                            <p class="project-card-price">5,132.80 <span class="project-card-price-unit">万元</span></p>
+                        </div>
+                        <span class="project-card-date">2024-11-28</span>
+                    </div>
+                </div>
+
+                <!-- 项目卡片 3 -->
+                <div class="project-card" data-project-id="3">
+                    <div class="project-card-header">
+                        <div class="project-card-info">
+                            <h3 class="project-card-title">市政道路改造工程</h3>
+                            <p class="project-card-location">广东广州</p>
+                        </div>
+                        <span class="tag tag-success">市政</span>
+                    </div>
+                    <div class="project-card-footer">
+                        <div>
+                            <p class="project-card-price-label">总造价</p>
+                            <p class="project-card-price">987.56 <span class="project-card-price-unit">万元</span></p>
+                        </div>
+                        <span class="project-card-date">2024-10-20</span>
+                    </div>
+                </div>
+
+                <!-- 拖拽上传区域 -->
+                <div class="upload-section">
+                    <h2 class="section-title" style="margin-bottom: 12px;">
+                        <i data-lucide="upload-cloud"></i>
+                        导入文件
+                    </h2>
+                    <div class="upload-area" id="upload-area">
+                        <i data-lucide="file-up"></i>
+                        <p class="upload-text">拖拽 Excel 文件到此处</p>
+                        <p class="upload-hint">或点击选择文件 (.xlsx / .xls)</p>
+                        <input type="file" id="file-input" accept=".xlsx,.xls" style="display:none;">
+                    </div>
+                    <!-- 导入模式选择 -->
+                    <div class="import-mode">
+                        <label>
+                            <input type="radio" name="import-mode" value="replace" checked>
+                            <span>替换现有数据</span>
+                        </label>
+                        <label>
+                            <input type="radio" name="import-mode" value="append">
+                            <span>追加到现有数据</span>
+                        </label>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 右栏：工程量清单表格 -->
+            <section class="boq-content-section">
+                <!-- 汇总统计 KPI 卡片 -->
+                <div class="kpi-row">
+                    <div class="kpi-card">
+                        <div class="kpi-header">
+                            <span class="kpi-label">总造价</span>
+                            <div class="kpi-icon primary">
+                                <i data-lucide="wallet"></i>
+                            </div>
+                        </div>
+                        <div class="kpi-value">
+                            <span class="kpi-number" style="color: var(--color-primary);">2,856.32</span>
+                            <span class="kpi-unit">万元</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-header">
+                            <span class="kpi-label">分部分项合计</span>
+                            <div class="kpi-icon info">
+                                <i data-lucide="layers"></i>
+                            </div>
+                        </div>
+                        <div class="kpi-value">
+                            <span class="kpi-number">2,340.18</span>
+                            <span class="kpi-unit">万元</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-header">
+                            <span class="kpi-label">措施项目合计</span>
+                            <div class="kpi-icon warning">
+                                <i data-lucide="tool"></i>
+                            </div>
+                        </div>
+                        <div class="kpi-value">
+                            <span class="kpi-number">312.56</span>
+                            <span class="kpi-unit">万元</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-header">
+                            <span class="kpi-label">清单条目数</span>
+                            <div class="kpi-icon success">
+                                <i data-lucide="list"></i>
+                            </div>
+                        </div>
+                        <div class="kpi-value">
+                            <span class="kpi-number">156</span>
+                            <span class="kpi-unit">项</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 工程量清单表格 -->
+                <div class="boq-table-container">
+                    <!-- 表格工具栏 -->
+                    <div class="boq-table-header">
+                        <div class="boq-table-title">
+                            <h2>分部分项工程量清单</h2>
+                            <span class="tag tag-default">共 12 项</span>
+                        </div>
+                        <div class="boq-table-actions">
+                            <div class="search-box">
+                                <i data-lucide="search"></i>
+                                <span>搜索清单项...</span>
+                            </div>
+                            <button class="btn-small" id="export-btn">
+                                <i data-lucide="download"></i>
+                                <span>导出</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 表格主体 -->
+                    <div class="boq-table-wrapper">
+                        <table class="boq-table">
+                            <thead>
+                                <tr>
+                                    <th class="code-col">编号</th>
+                                    <th class="name-col">名称</th>
+                                    <th class="unit-col text-center">单位</th>
+                                    <th class="qty-col text-right">工程量</th>
+                                    <th class="price-col text-right">综合单价</th>
+                                    <th class="total-col text-right">合价(元)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="boq-tbody">
+                                <!-- 土建工程分类 -->
+                                <tr class="category-row" data-category="civil">
+                                    <td colspan="6">
+                                        <i data-lucide="chevron-down"></i>
+                                        A. 土建工程
+                                    </td>
+                                </tr>
+                                <tr data-category="civil">
+                                    <td class="code-col">010101001</td>
+                                    <td class="name-col truncate">平整场地</td>
+                                    <td class="unit-col text-center">m²</td>
+                                    <td class="qty-col text-right">1,250.00</td>
+                                    <td class="price-col text-right">3.85</td>
+                                    <td class="total-col text-right">4,812.50</td>
+                                </tr>
+                                <tr data-category="civil">
+                                    <td class="code-col">010101002</td>
+                                    <td class="name-col truncate">挖一般土方</td>
+                                    <td class="unit-col text-center">m³</td>
+                                    <td class="qty-col text-right">3,680.00</td>
+                                    <td class="price-col text-right">28.60</td>
+                                    <td class="total-col text-right">105,248.00</td>
+                                </tr>
+                                <tr data-category="civil">
+                                    <td class="code-col">010103001</td>
+                                    <td class="name-col truncate">回填方</td>
+                                    <td class="unit-col text-center">m³</td>
+                                    <td class="qty-col text-right">2,150.00</td>
+                                    <td class="price-col text-right">22.40</td>
+                                    <td class="total-col text-right">48,160.00</td>
+                                </tr>
+                                <tr data-category="civil">
+                                    <td class="code-col">010401001</td>
+                                    <td class="name-col truncate">砖基础</td>
+                                    <td class="unit-col text-center">m³</td>
+                                    <td class="qty-col text-right">456.80</td>
+                                    <td class="price-col text-right">365.20</td>
+                                    <td class="total-col text-right">166,922.96</td>
+                                </tr>
+                                <tr data-category="civil">
+                                    <td class="code-col">010402001</td>
+                                    <td class="name-col truncate">砌块墙（加气混凝土）</td>
+                                    <td class="unit-col text-center">m³</td>
+                                    <td class="qty-col text-right">892.50</td>
+                                    <td class="price-col text-right">312.80</td>
+                                    <td class="total-col text-right">279,168.00</td>
+                                </tr>
+                                <tr data-category="civil">
+                                    <td class="code-col">010501001</td>
+                                    <td class="name-col truncate">现浇混凝土基础垫层</td>
+                                    <td class="unit-col text-center">m³</td>
+                                    <td class="qty-col text-right">186.30</td>
+                                    <td class="price-col text-right">428.50</td>
+                                    <td class="total-col text-right">79,830.55</td>
+                                </tr>
+                                <tr data-category="civil">
+                                    <td class="code-col">010502001</td>
+                                    <td class="name-col truncate">现浇混凝土矩形柱</td>
+                                    <td class="unit-col text-center">m³</td>
+                                    <td class="qty-col text-right">524.60</td>
+                                    <td class="price-col text-right">486.30</td>
+                                    <td class="total-col text-right">255,201.78</td>
+                                </tr>
+                                <tr data-category="civil">
+                                    <td class="code-col">010503001</td>
+                                    <td class="name-col truncate">现浇混凝土基础梁</td>
+                                    <td class="unit-col text-center">m³</td>
+                                    <td class="qty-col text-right">312.80</td>
+                                    <td class="price-col text-right">452.10</td>
+                                    <td class="total-col text-right">141,416.88</td>
+                                </tr>
+
+                                <!-- 装饰工程分类 -->
+                                <tr class="category-row" data-category="decor">
+                                    <td colspan="6">
+                                        <i data-lucide="chevron-down"></i>
+                                        B. 装饰装修工程
+                                    </td>
+                                </tr>
+                                <tr data-category="decor">
+                                    <td class="code-col">011102001</td>
+                                    <td class="name-col truncate">石材楼地面（花岗岩）</td>
+                                    <td class="unit-col text-center">m²</td>
+                                    <td class="qty-col text-right">860.00</td>
+                                    <td class="price-col text-right">285.60</td>
+                                    <td class="total-col text-right">245,616.00</td>
+                                </tr>
+                                <tr data-category="decor">
+                                    <td class="code-col">011204001</td>
+                                    <td class="name-col truncate">墙面一般抹灰</td>
+                                    <td class="unit-col text-center">m²</td>
+                                    <td class="qty-col text-right">4,520.00</td>
+                                    <td class="price-col text-right">18.90</td>
+                                    <td class="total-col text-right">85,428.00</td>
+                                </tr>
+
+                                <!-- 合计行 -->
+                                <tr class="total-row">
+                                    <td colspan="4" style="text-align: right;">本页小计</td>
+                                    <td style="text-align: right; color: var(--color-text-secondary);">-</td>
+                                    <td class="total-col text-right" style="font-size: var(--font-size-sm);">1,411,804.67</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- 分页 -->
+                    <div class="pagination">
+                        <p class="pagination-info">显示 1-12 项，共 156 项</p>
+                        <div class="pagination-buttons">
+                            <button class="page-btn" disabled>上一页</button>
+                            <button class="page-btn active">1</button>
+                            <button class="page-btn">2</button>
+                            <button class="page-btn">3</button>
+                            <button class="page-btn">...</button>
+                            <button class="page-btn">13</button>
+                            <button class="page-btn">下一页</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <script src="assets/js/common.js"></script>
+    <script>
+        /* ============================================
+           工程量清单页面交互逻辑
+           ============================================ */
+        (function () {
+            'use strict';
+
+            // ========== DOM 元素 ==========
+            const sidebarToggle = document.getElementById('sidebar-toggle');
+            const projectCards = document.querySelectorAll('.project-card');
+            const projectSelect = document.getElementById('project-select');
+            const categoryRows = document.querySelectorAll('.category-row');
+            const uploadArea = document.getElementById('upload-area');
+            const fileInput = document.getElementById('file-input');
+            const pageBtns = document.querySelectorAll('.page-btn:not(:disabled):not(.active)');
+
+            // ========== 侧边栏切换（移动端） ==========
+            if (sidebarToggle) {
+                sidebarToggle.addEventListener('click', function () {
+                    CostApp.Sidebar.toggle();
+                });
+            }
+
+            // ========== 项目卡片切换 ==========
+            projectCards.forEach(function (card) {
+                card.addEventListener('click', function () {
+                    // 移除所有激活状态
+                    projectCards.forEach(function (c) {
+                        c.classList.remove('active');
+                    });
+                    // 添加当前激活状态
+                    card.classList.add('active');
+
+                    // 同步更新顶部选择器
+                    const projectId = card.getAttribute('data-project-id');
+                    if (projectSelect) {
+                        projectSelect.value = projectId;
+                    }
+
+                    // 模拟切换项目数据
+                    updateProjectData(projectId);
+                });
+            });
+
+            // 顶部选择器同步
+            if (projectSelect) {
+                projectSelect.addEventListener('change', function () {
+                    const value = this.value;
+                    projectCards.forEach(function (card) {
+                        if (card.getAttribute('data-project-id') === value) {
+                            card.classList.add('active');
+                        } else {
+                            card.classList.remove('active');
+                        }
+                    });
+                    updateProjectData(value);
+                });
+            }
+
+            // 模拟更新项目数据
+            function updateProjectData(projectId) {
+                // 这里可以添加数据切换的动画效果
+                const kpiCards = document.querySelectorAll('.kpi-card');
+                kpiCards.forEach(function (card) {
+                    card.style.opacity = '0.5';
+                    setTimeout(function () {
+                        card.style.opacity = '1';
+                    }, 200);
+                });
+            }
+
+            // ========== 分类折叠/展开 ==========
+            categoryRows.forEach(function (row) {
+                row.addEventListener('click', function () {
+                    const category = row.getAttribute('data-category');
+                    const isCollapsed = row.classList.contains('collapsed');
+
+                    if (isCollapsed) {
+                        // 展开
+                        row.classList.remove('collapsed');
+                        document.querySelectorAll('tr[data-category="' + category + '"]').forEach(function (tr) {
+                            tr.style.display = '';
+                        });
+                    } else {
+                        // 折叠
+                        row.classList.add('collapsed');
+                        document.querySelectorAll('tr[data-category="' + category + '"]').forEach(function (tr) {
+                            tr.style.display = 'none';
+                        });
+                    }
+                });
+            });
+
+            // ========== 文件上传 ==========
+            if (uploadArea && fileInput) {
+                // 点击上传区域
+                uploadArea.addEventListener('click', function () {
+                    fileInput.click();
+                });
+
+                // 文件选择
+                fileInput.addEventListener('change', function (e) {
+                    if (e.target.files && e.target.files.length > 0) {
+                        handleFileUpload(e.target.files[0]);
+                    }
+                });
+
+                // 拖拽进入
+                uploadArea.addEventListener('dragover', function (e) {
+                    e.preventDefault();
+                    uploadArea.classList.add('dragover');
+                });
+
+                // 拖拽离开
+                uploadArea.addEventListener('dragleave', function (e) {
+                    e.preventDefault();
+                    uploadArea.classList.remove('dragover');
+                });
+
+                // 放下
+                uploadArea.addEventListener('drop', function (e) {
+                    e.preventDefault();
+                    uploadArea.classList.remove('dragover');
+                    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                        handleFileUpload(e.dataTransfer.files[0]);
+                    }
+                });
+            }
+
+            function handleFileUpload(file) {
+                // 检查文件类型
+                const validTypes = ['.xlsx', '.xls'];
+                const fileName = file.name.toLowerCase();
+                const isValid = validTypes.some(function (type) {
+                    return fileName.endsWith(type);
+                });
+
+                if (!isValid) {
+                    alert('请上传 Excel 文件（.xlsx 或 .xls 格式）');
+                    return;
+                }
+
+                // 模拟上传处理
+                uploadArea.innerHTML = `
+                    <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+                        <i data-lucide="check-circle" style="width:32px;height:32px;color:var(--state-success);"></i>
+                        <p class="upload-text" style="color:var(--state-success);">文件上传成功</p>
+                        <p class="upload-hint">${file.name}</p>
+                    </div>
+                `;
+
+                if (window.lucide) {
+                    lucide.createIcons({ attrs: { 'stroke-width': 2 } });
+                }
+
+                // 2秒后恢复
+                setTimeout(function () {
+                    uploadArea.innerHTML = `
+                        <i data-lucide="file-up"></i>
+                        <p class="upload-text">拖拽 Excel 文件到此处</p>
+                        <p class="upload-hint">或点击选择文件 (.xlsx / .xls)</p>
+                    `;
+                    if (window.lucide) {
+                        lucide.createIcons({ attrs: { 'stroke-width': 2 } });
+                    }
+                }, 2000);
+            }
+
+            // ========== 分页交互 ==========
+            const paginationButtons = document.querySelectorAll('.pagination-buttons .page-btn');
+            paginationButtons.forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    if (btn.disabled || btn.classList.contains('active')) return;
+
+                    // 移除所有激活状态
+                    paginationButtons.forEach(function (b) {
+                        if (!b.disabled && b.textContent !== '...' && b.textContent !== '上一页' && b.textContent !== '下一页') {
+                            b.classList.remove('active');
+                        }
+                    });
+
+                    // 如果是数字按钮，激活它
+                    if (/^\d+$/.test(btn.textContent)) {
+                        btn.classList.add('active');
+                    }
+
+                    // 模拟翻页动画
+                    const tbody = document.getElementById('boq-tbody');
+                    tbody.style.opacity = '0.5';
+                    setTimeout(function () {
+                        tbody.style.opacity = '1';
+                    }, 200);
+                });
+            });
+
+            // ========== 导出按钮 ==========
+            const exportBtn = document.getElementById('export-btn');
+            if (exportBtn) {
+                exportBtn.addEventListener('click', function () {
+                    // 模拟导出
+                    const originalText = exportBtn.innerHTML;
+                    exportBtn.innerHTML = '<i data-lucide="check"></i><span>已导出</span>';
+                    if (window.lucide) {
+                        lucide.createIcons({ attrs: { 'stroke-width': 2 } });
+                    }
+                    exportBtn.style.borderColor = 'var(--state-success)';
+                    exportBtn.style.color = 'var(--state-success)';
+
+                    setTimeout(function () {
+                        exportBtn.innerHTML = originalText;
+                        exportBtn.style.borderColor = '';
+                        exportBtn.style.color = '';
+                        if (window.lucide) {
+                            lucide.createIcons({ attrs: { 'stroke-width': 2 } });
+                        }
+                    }, 2000);
+                });
+            }
+        })();
+    </script>
+</body>
+</html>
