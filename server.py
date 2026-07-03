@@ -13,7 +13,7 @@ import asyncio
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import StreamingResponse, JSONResponse
+from fastapi.responses import StreamingResponse, JSONResponse, FileResponse
 import httpx
 
 from tools import TOOLS, execute_tool, get_pipeline_data, get_cost_index_data
@@ -122,12 +122,7 @@ async def chat(request: Request):
     if not messages:
         raise HTTPException(status_code=400, detail="messages 不能为空")
 
-    # 组装系统提示词
-    full_system_prompt = SYSTEM_PROMPT + "\n" + TOOL_SYSTEM_PROMPT if SYSTEM_PROMPT else TOOL_SYSTEM_PROMPT
-
-    # 插入系统提示词（如果第一条不是 system）
-    if not messages or messages[0].get("role") != "system":
-        messages.insert(0, {"role": "system", "content": full_system_prompt.strip()})
+    messages = prepare_messages(messages)
 
     # 构造 OpenAI 请求基础参数
     url = f"{API_BASE_URL}/chat/completions"
@@ -162,6 +157,20 @@ async def chat(request: Request):
 
 
 # ========== Function Calling 核心逻辑 ==========
+
+def prepare_messages(messages):
+    """合并用户 system prompt 与内置工具提示，避免丢失 Function Calling 规则"""
+    prepared = [dict(message) for message in messages]
+    full_system_prompt = SYSTEM_PROMPT + "\n" + TOOL_SYSTEM_PROMPT if SYSTEM_PROMPT else TOOL_SYSTEM_PROMPT
+    full_system_prompt = full_system_prompt.strip()
+
+    if prepared and prepared[0].get("role") == "system":
+        existing_content = prepared[0].get("content", "").strip()
+        prepared[0]["content"] = (existing_content + "\n\n" + full_system_prompt).strip()
+    else:
+        prepared.insert(0, {"role": "system", "content": full_system_prompt})
+
+    return prepared
 
 async def chat_with_tools(messages, temperature, url, headers, max_rounds=5):
     """非流式：支持多轮 Function Calling"""
@@ -358,6 +367,11 @@ async def stream_chat_with_tools(messages, temperature, url, headers, max_rounds
 
 
 # ========== 静态文件服务（放在最后，避免覆盖 API 路由） ==========
+@app.get("/", include_in_schema=False)
+async def index():
+    return FileResponse(os.path.join(STATIC_DIR, "chat.html"))
+
+
 app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
 
 

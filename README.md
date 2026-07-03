@@ -100,7 +100,7 @@ python server.py
 
 ### 4. 访问应用
 
-打开浏览器访问 http://localhost:8080
+打开浏览器访问 http://localhost:8080，会进入智能对话页面。
 
 ## 项目结构
 
@@ -118,7 +118,6 @@ cost-assistant/
 ├── audit.html             # 造价审核页面
 ├── dashboard.html         # 造价指标看板页面
 ├── pipeline.html          # 管线迁改指标页面
-├── index.html             # 首页导航
 │
 └── assets/
     ├── css/

@@ -3,9 +3,16 @@
 解析管线切改指标 Excel 原始数据，生成结构化 JS 数据文件
 """
 import json
+import os
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parents[1]
 
 # 读取原始 JSON
-with open(r'd:\TRAE SOLO CN\mydata\cost-assistant\assets\pipeline_raw.json', 'r', encoding='utf-8') as f:
+raw_path = BASE_DIR / 'pipeline_raw.json'
+output_path = BASE_DIR / 'js' / 'pipeline-data.js'
+
+with raw_path.open('r', encoding='utf-8') as f:
     raw = json.load(f)
 
 # ========== 解析列表型 sheet（电力/通信/燃气/通用工程）==========
@@ -179,8 +186,7 @@ js_content = '/* 管线迁改工程预算限额指标 - 结构化数据 */\n'
 js_content += '/* 数据来源：管线切改指标成果.xlsx，基于广州、雄安、天津、乌海四地资料编制 */\n'
 js_content += 'window.PIPELINE_DATA = ' + json.dumps(structured, ensure_ascii=False, indent=2) + ';\n'
 
-with open(r'd:\TRAE SOLO CN\mydata\cost-assistant\assets\js\pipeline-data.js', 'w', encoding='utf-8') as f:
+with output_path.open('w', encoding='utf-8') as f:
     f.write(js_content)
 
-import os
-print(f'\nGenerated: pipeline-data.js ({os.path.getsize(r"d:\TRAE SOLO CN\mydata\cost-assistant\assets\js\pipeline-data.js")} bytes)')
+print(f'\nGenerated: pipeline-data.js ({os.path.getsize(output_path)} bytes)')
